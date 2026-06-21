@@ -1,77 +1,92 @@
+\newgeometry{top=0.6in,bottom=2.5cm,right=2.5cm,left=2.5cm,footskip=0.8cm}
+
 \begin{titlepage}
-	\centering
+\thispagestyle{plain}
+\begin{tcolorbox}[width=1\textwidth,  colframe=black, colback=white, boxsep=2mm, arc=3mm]
 
-	% ── ESI bilingual institutional letterhead ─────────────────────────
-	\noindent
-	\begin{tcolorbox}[
-			enhanced, colback=white, colframe=EsiRed, boxrule=1pt,
-			arc=2pt, left=6pt, right=6pt, top=4pt, bottom=4pt
-		]
-		\begin{minipage}[c]{0.27\linewidth}
-			\centering
-			\includegraphics[width=0.92\linewidth]{images/esi_logo.png}
-		\end{minipage}\hfill
-		\begin{minipage}[c]{0.68\linewidth}
-			\raggedleft
-			% NOTE: Arabic RTL text intentionally omitted — this document is
-			% typeset with pdfLaTeX (fontenc T1 / inputenc utf8, Helvetica),
-			% which cannot shape Arabic script. Compile with XeLaTeX + polyglossia
-			% if the official bilingual Arabic masthead is required.
-			{\footnotesize\itshape République Algérienne Démocratique et Populaire}\\[1mm]
-			{\footnotesize\itshape Ministère de l'Enseignement Supérieur et de la Recherche Scientifique}\\[2mm]
-			{\footnotesize People's Democratic Republic of Algeria}\\
-			{\footnotesize Ministry of Higher Education and Scientific Research}
-		\end{minipage}
-	\end{tcolorbox}
+\begin{minipage}{5cm}
+	\begin{flushleft}
+		\includegraphics[width=4.1cm]{images/esi_logo.png}
+	\end{flushleft}
+\end{minipage}
+\hfill
+\begin{minipage}{10cm}
+	\begin{flushright}
+    \begin{Arabic}
+    \footnotesize {الجـــــمهوريـــــــة الجزائريــــــة الديمــــــقراطيــــــــــــة الشـــعـبـيـــة }\\
+    \vspace{-1mm}
+    \footnotesize{وزارة التعليـــــم العــــــــــالي والبــــــحث العلمــــي }
+	\end{Arabic}\\
+	{\scriptsize People's Democratic Republic of Algeria}\\
+    {\scriptsize Ministry of Higher Education and Scientific Research}\\
+	\end{flushright}
+\end{minipage}\hfill\\
 
-	\vspace{14mm}
+\end{tcolorbox}
 
-	{\large\bfseries École Nationale Supérieure d'Informatique (ESI) --- Algiers}\\[2mm]
-	{\normalsize Engineering Cycle --- Computer Science Specialization --- IoT / Robotics Integrative Project}
+\vspace{2.5cm}
 
-	\vspace{18mm}
 
-	{\Huge\bfseries\color{EsiRed}Esi\textcolor{EsiBlue}{Bot}}\\[4mm]
-	{\Large\bfseries Autonomous Differential-Drive Mobile Robot}\\[6mm]
+\begin{center}
+{\large \bfseries{École Nationale Supérieure d'Informatique (ESI) --- Algiers}}\\[0.3cm]
+{\small IoT / Mobile Robotics Integrative Project}\\[0.3cm]
+\vspace{0.5cm}
+\textsc{\huge\textbf{Technical Report}}
+\end{center}
+\vspace{2mm}
+\begin{center}
+\begin{flushleft}
+    \hspace{0.3cm}
+    \begin{tcolorbox}[width=2cm,  colframe=yellowgreen, colback=white, boxsep=0mm, arc=1mm]
+    {\bfseries{Title:}\\ }
+     \vspace{-5mm}
+    \end{tcolorbox}
+    \vspace{-2mm}
+\end{flushleft}
+       \begin{tcolorbox}[width=.96\linewidth,  colframe=black, colback=white, boxsep=6mm, arc=3mm]
+        \centering \huge \textbf{EsiBot --- Autonomous Differential-Drive Mobile Robot}
+    \end{tcolorbox}
+        \vspace{0.1cm}
+    \vspace{0.2cm}
+\end{center}
+
+\begin{center}
 	{\normalsize\itshape
-		Technical Report\\
 		Design, Integration and Experimental Evaluation\\
-		of an Autonomous Mobile Robot under \ros{} Humble}
+		of an Autonomous Mobile Robot under ROS\,2 Humble}
+\end{center}
 
-	\vspace{10mm}
+\vspace{0.5cm}
 
-	\vspace{10mm}
-	
-	\begin{center}
-		\large \textbf{Module:} Internet of Things --- Mobile Robotics \\[2mm]
-		\textbf{Academic Year:} 2025--2026
-	\end{center}
+\begin{flushleft}
+    \begin{tcolorbox}[width=3.5cm,  colframe=yellowgreen, colback=white, boxsep=0mm, arc=1mm]
+    {\bfseries{Studied by:}\\ }
+     \vspace{-5mm}
+    \end{tcolorbox}
+    \vspace{-7mm}
+\end{flushleft}
 
-	\vspace{12mm}
+\begin{flushleft}
+    \raggedright
+      \begin{tcolorbox}[width=\linewidth, colframe=black, colback=white, boxsep=1mm, arc=2mm, left=2mm]
+        \begin{itemize}
+            \item[] \textbf{Team Lead:} BOUMISSA Mohamed Chakib
+            \item[] \textbf{Members:}
+            \item[] \quad ALLOUCHE Reda
+            \item[] \quad BENDAOUD Anes
+            \item[] \quad CHABANE Ouail
+            \item[] \quad IDJA Rayane
+            \item[] \quad MOSTEFAI Mounir Sofiane
+            \item[] \quad TATI Youcef
+        \end{itemize}
+    \end{tcolorbox}
+\end{flushleft}
 
-	\begin{minipage}[t]{0.48\textwidth}
-		\begin{flushleft} \large
-			\emph{Team Lead:}\\[1mm]
-			BOUMISSA Mohamed Chakib\\
-			\vspace{4mm}
-			\emph{Members:}\\[1mm]
-			ALLOUCHE Reda\\
-			BENDAOUD Anes\\
-			CHABANE Ouail\\
-		\end{flushleft}
-	\end{minipage}
-	\hfill
-	\begin{minipage}[t]{0.48\textwidth}
-		\begin{flushright} \large
-			\vspace{1.86cm}
-			IDJA Rayane\\
-			MOSTEFAI Mounir Sofiane\\
-			TATI Youcef\\
-		\end{flushright}
-	\end{minipage}
-
-	\vfill
-
-	{\footnotesize\color{CommentGray} ESI Algiers --- Academic Year 2025--2026 --- Document produced as part of the EsiBot integrative project}
+\vspace{-0.5cm}
+\begin{center}
+	\textbf{Module:} Internet of Things --- Mobile Robotics \hspace{1cm}
+	\textbf{Academic Year:} 2025--2026
+\end{center}
 
 \end{titlepage}
+\restoregeometry

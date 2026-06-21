@@ -1,9 +1,9 @@
-\documentclass[10pt, a4paper, oneside]{report}
+%% General document settings — ICS-lab template style
+\documentclass[a4paper,10pt]{report}
 \PassOptionsToPackage{nopatch=footnote}{microtype}
 \usepackage{esibot}
 
-% ── Front-matter names (English defaults from the report class) ──
-
+% ── Acronyms ─────────────────────────────────────────────────────────────────
 \newacronym{ros}{ROS}{Robot Operating System}
 \newacronym{slam}{SLAM}{Simultaneous Localization and Mapping}
 \newacronym{mcu}{MCU}{Microcontroller Unit}
@@ -38,33 +38,29 @@
 
 \begin{document}
 
-\hypersetup{pageanchor=false}
-\include{sections/00_titlepage}
-\hypersetup{pageanchor=true}
-
-\pagenumbering{roman}
-\include{sections/00_abstract}
+\input{sections/00_titlepage}
+\setcounter{page}{2}
+\pagestyle{fancy}
 
 {
-	\footnotesize
-	\hypersetup{linkcolor=black}
-	\tableofcontents
+\hypersetup{linkcolor=black}
+\tableofcontents
 }
+\newpage
 
-\cleardoublepage
-\pagenumbering{arabic}
+\input{sections/00_abstract}
 
-\include{sections/01_introduction}
-\include{sections/03_architecture_globale}
-\include{sections/04_mecanique}
-\include{sections/06_commande_bas_niveau}
-\include{sections/07_slam_kinect}
-\include{sections/09_interface_utilisateur}
-\include{sections/11_resultats_tests}
-\include{sections/12_limitations}
-\include{sections/13_bilan}
+\input{sections/01_introduction}
+\input{sections/03_architecture_globale}
+\input{sections/04_mecanique}
+\input{sections/06_commande_bas_niveau}
+\input{sections/07_slam_kinect}
+\input{sections/09_interface_utilisateur}
+\input{sections/11_resultats_tests}
+\input{sections/12_limitations}
+\input{sections/13_bilan}
 
 \appendix
-\include{sections/A_appendix}
+\input{sections/A_appendix}
 
 \end{document}
