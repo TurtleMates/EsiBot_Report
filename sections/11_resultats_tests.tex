@@ -16,7 +16,9 @@ Les paramètres de fonctionnement déclarés dans l'architecture dictent le comp
                 \midrule
                 Résolution encodeur effective & 24 imp./tour & \texttt{encoder\_cpr}=12, comptage double front \\
                 Fréquences boucle commande / \gls{imu} / \gls{ekf} & 10 / 50 / 30\,Hz & \texttt{control\_hz}, \texttt{mpu6050\_node}, \texttt{ekf\_odom\_imu.yaml} \\
+                Calibration biais gyroscope & 100 échantillons & \texttt{gyro\_calibration\_samples} \\
                 Cadence \topic{/scan} brute / intégrée \gls{slam} & $\approx$30\,Hz / $\leq$2\,Hz & \texttt{scan\_time}=0.033\,s ; intervalle=0.5\,s \\
+                Cadence radar ultrasonique & $\approx$0.07\,Hz & \texttt{ultrasonic\_radar.yaml} \\
                 Vitesse linéaire/angulaire max. (téléopération) & 0.25\,m/s / 2.4\,rad/s & \texttt{scale\_linear.x}, \texttt{scale\_angular.yaw} \\
                 Vitesse linéaire min./max. (Nav2/\gls{dwb}) & 0.2 / 0.3\,m/s & \texttt{esibot.yaml} \\
                 Tolérance position du but (\texttt{FollowPath}) & 0.05\,m & \texttt{esibot.yaml} \\
@@ -34,11 +36,40 @@ Les paramètres de fonctionnement déclarés dans l'architecture dictent le comp
 \section{Plan de Validation}
 \label{sec:resultats_tests}
 
-La validation physique de la plateforme repose sur cinq scénarios majeurs, vérifiant la fiabilité de chaque couche~:
-\begin{itemize}
-    \item \textbf{Démarrage bas-niveau~:} Initialisation réussie des nœuds fondamentaux (moteurs, MPU, IHM).
-    \item \textbf{Cohérence odométrique~:} Mesure de la dérive de translation sur 2 mètres.
-    \item \textbf{Pipeline Capteurs~:} Vérification du flux Kinect $\to$ \topic{/scan} avec des mesures à une distance connue (ex: 1 mètre).
-    \item \textbf{Cartographie~:} Examen du taux d'erreur sur l'établissement d'une carte de 3$\times$3 m.
-    \item \textbf{Navigation Autonome~:} Atteinte de trois buts successifs sans collision dans la base de l'environnement connu, avec une tolérance finale de 10\,cm.
-\end{itemize}
+La validation physique de la plateforme repose sur les scénarios du
+tableau~\ref{tab:test_plan}, qui vérifient la fiabilité de chaque couche.
+
+\begin{table}[H]
+        \centering
+        \caption{Plan de validation terrain.}
+        \label{tab:test_plan}
+        \begin{tabularx}{\linewidth}{L{3.4cm} L{5.4cm} L{3.6cm}}
+                \toprule
+                \textbf{Scénario} & \textbf{Procédure} & \textbf{Critère attendu} \\
+                \midrule
+                Démarrage bas-niveau & Lancer moteurs, MPU6050, \gls{ekf} et dashboard & topics \topic{/odom}, \topic{/imu/data\_raw}, \topic{/odometry/filtered} stables \\
+                Cohérence odométrique & Parcourir 2\,m en ligne droite après calibration PWM & dérive latérale mesurée et reproductible \\
+                Pipeline Kinect & Comparer \topic{/scan} à des distances murales connues & erreur de portée bornée et sans trous persistants \\
+                Cartographie & Construire une carte Kinect d'une zone $3\times3$\,m & murs continus, fermeture de boucle plausible \\
+                Navigation & Envoyer trois buts Nav2 successifs sur carte sauvegardée & arrivée sans collision et arrêt contrôlé \\
+                Exploration & Initialiser \texttt{m-explore-ros2} avec SLAM/Nav2 actifs & objectifs frontière émis sans conflit \gls{tf} \\
+                \bottomrule
+        \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+        \centering
+        \caption{État consolidé des validations dans le rapport.}
+        \label{tab:metrics_consolidated}
+        \begin{tabularx}{\linewidth}{L{4cm} L{4cm} L{4cm}}
+                \toprule
+                \textbf{Élément} & \textbf{État actuel} & \textbf{Mesure restante} \\
+                \midrule
+                Commande moteur & implémentée et calibrable & courbe PWM/RPM finale sur robot assemblé \\
+                \gls{ekf} odom+\gls{imu} & configuré conservativement & dérive avant/après fusion sur trajectoire répétée \\
+                Kinect $\to$ \topic{/scan} & lancé par \texttt{mapping.launch.py} & comparaison raw/cleaned depth après intégration \texttt{depth\_cleanup} \\
+                Nav2 & configuration complète & essais multi-buts sur carte EsiBot réelle \\
+                Exploration & dépendance ajoutée & orchestration par launch et test de frontières \\
+                \bottomrule
+        \end{tabularx}
+\end{table}

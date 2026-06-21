@@ -31,7 +31,7 @@ chaque cycle~:
 \label{sec:cbn_pid}
 
 Chaque roue dispose de son propre correcteur \gls{pid} indépendant, avec gains par défaut
-$K_p$, $K_i$, $K_d$ paramétrables via le serveur de paramètres \ros{}\,2 (et ajustables en
+$K_p$, $K_i$, $K_d$ paramétrables via le serveur de paramètres \ros{} (et ajustables en
 exploitation sans recompilation). La sortie du correcteur est saturée et un mécanisme
 anti-\emph{windup} limite l'accumulation du terme intégral lorsque la commande est saturée,
 évitant un dépassement (\emph{overshoot}) lors des changements brusques de consigne.
@@ -44,39 +44,46 @@ anti-\emph{windup} limite l'accumulation du terme intégral lorsque la commande 
 	communication réseau avec le nœud de téléopération ou de Nav2.
 \end{notebox}
 
-\section{Conversion de cap et PWM}
+\section{Conversion vitesse de roue et PWM}
 \label{sec:cbn_pwm_mapper}
 
 Le module \texttt{pwm\_mapper.py} convertit une vitesse linéaire de roue souhaitée
-(en \unit{\metre\per\second}) en rapport cyclique PWM normalisé. La conversion combine~:
+(en \unit{\metre\per\second}) en rapport cyclique PWM normalisé. Dans
+\texttt{working\_build}, cette conversion n'est plus un simple étalonnage théorique~: elle
+charge le fichier \texttt{\textasciitilde/.esibot/pwm\_rpm\_map.json}, généré sur le robot,
+et applique une régression affine séparée pour chaque roue et chaque sens de marche. La
+conversion combine~:
 \begin{itemize}
-	\item une zone morte (\emph{dead-zone}) compensant le couple de démarrage minimal requis
-	      par les moteurs à courant continu (sous le seuil \texttt{min\_duty\_cycle}, le moteur
-	      ne tourne pas) ;
-	\item une mise à l'échelle linéaire entre la zone morte et le rapport cyclique maximal
-	      (\texttt{max\_duty\_cycle}, 100\,\% par défaut), correspondant à la vitesse linéaire
-	      maximale théorique du robot ;
-	\item une saturation finale pour garantir que la commande reste dans
-	      $[0, 100]\,\%$.
+	\item une zone morte mécanique (\texttt{min\_duty\_cycle}, 15\,\% par défaut et 22\,\%
+	      dans certains lancements sans calibration) ;
+	\item des coefficients \texttt{a}/\texttt{b} calibrés pour \texttt{left/right} et
+	      \texttt{forward/reverse}, afin de compenser les différences de rendement des deux
+	      moteurs ;
+	\item un plafonnement à \texttt{max\_pwm}/\texttt{max\_rpm} issus de la calibration, ce
+	      qui évite de commander une zone de saturation ou de bruit mécanique.
 \end{itemize}
 
 \section{Outil de calibration (\texttt{motor\_calibrator.py})}
 \label{sec:cbn_calibrator}
 
-Un script de calibration autonome (hors graphe \ros{}\,2, exécuté en ligne de commande)
-permet de caractériser empiriquement la relation entre rapport cyclique PWM et vitesse de
-rotation réelle (en \unit{\rpm}) pour chaque moteur~: il applique une rampe de valeurs PWM
-croissantes, mesure la vitesse résultante via les encodeurs, et ajuste une relation
-(typiquement affine par morceaux) utilisée ensuite pour affiner les paramètres de
-\texttt{pwm\_mapper.py}. Cet outil est essentiel pour compenser l'asymétrie mécanique
-entre les deux moteurs (différences de frottement, de tolérance de fabrication), source
-fréquente de dérive de trajectoire en ligne droite sur les robots différentiels bas coût.
+Un script de calibration autonome (hors graphe \ros{}, exécuté en ligne de commande)
+caractérise empiriquement la relation entre rapport cyclique PWM et vitesse de rotation
+réelle (en \unit{\rpm}) pour chaque moteur. Il balaie les rapports cycliques de 15\,\% à
+100\,\% par pas de 5\,\%, mesure deux échantillons d'une seconde par point, conserve la
+médiane, puis arrête le balayage dès qu'une chute de RPM indique une saturation ou une
+mesure instable. Le résultat est sauvegardé dans
+\texttt{\textasciitilde/.esibot/pwm\_rpm\_map.json} avec le rayon de roue utilisé
+(0.033\,m), la fréquence PWM (500\,Hz) et les coefficients avant/arrière de chaque roue.
+Cet outil est essentiel pour limiter l'asymétrie mécanique des moteurs, mais il ne suffit
+pas seul à garantir une odométrie correcte si le rayon de roue réel, l'empattement et les
+paramètres \gls{slam} ne sont pas recalés ensemble (chapitre~\ref{ch:limitations}).
 
 \section{Centrale inertielle et stabilisation de cap}
 \label{sec:cbn_imu}
 
-Le nœud \texttt{mpu6050\_node} (paquet \texttt{esibot\_sensors}) publie en continu
-(50\,Hz)~:
+Le nœud \texttt{mpu6050\_node} (paquet \texttt{esibot\_sensors}) démarre par une
+calibration stationnaire du biais gyroscopique sur 100 échantillons, puis publie en
+continu (50\,Hz)~:
 \begin{itemize}
 	\item \topic{/imu/data\_raw} (\texttt{sensor\_msgs/Imu}) --- accélérations linéaires
 	      $(a_x, a_y, a_z)$ et vitesses angulaires $(\omega_x, \omega_y, \omega_z)$ brutes ;
@@ -84,9 +91,11 @@ Le nœud \texttt{mpu6050\_node} (paquet \texttt{esibot\_sensors}) publie en cont
 	      du capteur, utile au diagnostic thermique.
 \end{itemize}
 
-\texttt{motor\_bridge\_node} peut souscrire à \topic{/imu/data\_raw} pour appliquer une
-correction de cap (lacet) en boucle fermée, réduisant la dérive directionnelle inhérente à
-l'odométrie par encodeurs seule (notamment lors d'un glissement de roue).
+\texttt{motor\_bridge\_node} souscrit à \topic{/imu/data\_raw} pour appliquer une
+correction de lacet en boucle fermée lorsque le robot avance et qu'aucune rotation
+volontaire n'est commandée. Le correcteur compense une vitesse de lacet résiduelle
+mesurée par l'\gls{imu}, avec une bande morte de 0.02\,rad/s et une correction maximale de
+40\,RPM par roue.
 
 \section{Fusion de données (Filtre EKF)}
 \label{sec:cbn_ekf}
@@ -94,12 +103,11 @@ l'odométrie par encodeurs seule (notamment lors d'un glissement de roue).
 L'odométrie brute (\topic{/odom}, issue des seuls encodeurs) et les données inertielles
 (\topic{/imu/data\_raw}) sont fusionnées par un \gls{ekf} fourni par le paquet standard
 \texttt{robot\_localization} (nœud \texttt{ekf\_filter\_node}), configuré en mode
-bidimensionnel (\texttt{two\_d\_mode: true}, pertinent pour un robot terrestre se déplaçant
-dans un plan). La sortie fusionnée, publiée sur \topic{/odometry/filtered}, est la source
-d'odométrie utilisée par \gls{slam} et Nav2 --- et non l'odométrie brute --- ce qui
-améliore la robustesse de la localisation face aux glissements de roue ponctuels détectés
-par l'\gls{imu} mais invisibles aux encodeurs. Le filtre publie également la transformée
-\topic{odom} $\rightarrow$ \topic{base\_link} dans l'arbre \gls{tf}
-(\texttt{publish\_tf: true}), complétant la chaîne
-\topic{map} $\rightarrow$ \topic{odom} $\rightarrow$ \topic{base\_link} requise par Nav2.
-
+bidimensionnel (\texttt{two\_d\_mode: true}). Le fichier
+\texttt{ekf\_odom\_imu.yaml} de \texttt{working\_build} est volontairement conservateur~:
+il fusionne les vitesses d'odométrie $(v_x,v_y,\dot\theta)$ et uniquement la vitesse de
+lacet de l'\gls{imu}. Il n'injecte ni orientation absolue ni accélération linéaire, car le
+MPU6050 ne publie pas d'orientation estimée et son accélération brute contient gravité et
+biais résiduel. La sortie \topic{/odometry/filtered} fournit donc une odométrie locale
+plus stable pour \gls{slam}/Nav2, tandis que \texttt{slam\_toolbox} ou \gls{amcl} gardent
+la responsabilité de la correction globale \topic{map}~$\rightarrow$~\topic{odom}.

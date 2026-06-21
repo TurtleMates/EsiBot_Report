@@ -1,7 +1,7 @@
 \chapter{Cartographie et Navigation Autonome}
 \label{ch:slam}
 
-\section{Pipeline Kinect $\to$ \gls{slam}}
+\section{Pipeline Kinect vers \gls{slam}}
 \label{sec:slam_overview}
 
 Le système repose sur un capteur de profondeur \textbf{Kinect} pour générer la cartographie de l'environnement.
@@ -62,10 +62,60 @@ bande horizontale de l'image de profondeur en balayage laser synthétique
 \end{table}
 
 \begin{notebox}[title={Champ de vision réduit}]
-	Le Kinect couvre $\approx$57° horizontalement contre 180°--360° pour le radar rotatif
+	Le Kinect couvre $\approx57^\circ$ horizontalement contre 180--360 degrés pour un
+	radar rotatif ou un LiDAR panoramique
 	prévu~: les zones latérales/arrière restent aveugles à un instant donné, nécessitant
 	une rotation active du robot pendant la cartographie pour compenser.
 \end{notebox}
+
+\section{Prétraitement de profondeur \texttt{depth\_cleanup}}
+\label{sec:slam_depth_cleanup}
+
+La branche \texttt{working\_build} ajoute le paquet \texttt{depth\_cleanup}, une
+bibliothèque C++/OpenCV indépendante de \ros{} et de \texttt{libfreenect}. Son rôle est de
+nettoyer les trous de profondeur Kinect tout en conservant une image métrique
+\texttt{CV\_16UC1} en millimètres, utilisable ensuite par un nœud \ros{} qui publierait
+une \texttt{sensor\_msgs/Image} synchronisée avec \texttt{CameraInfo}. Le mode retenu pour
+la géométrie est \texttt{applyKinectSmoothingPipeline()}~:
+\begin{itemize}
+	\item les pixels nuls sont traités comme invalides ;
+	\item un voisinage $3\times3$ remplit les petits trous par mode quantifié en classes de
+	      10\,mm ;
+	\item les trous restants sont comblés par \texttt{cv::INPAINT\_TELEA} à 20\,\% de
+	      résolution pour limiter le coût CPU ;
+	\item les pixels valides originaux restent inchangés, ce que vérifient les tests
+	      unitaires du paquet.
+\end{itemize}
+
+Le document \texttt{SLAM\_INTEGRATION.md} fixe explicitement la frontière d'intégration~:
+\texttt{slam\_toolbox} ne consomme pas l'image de profondeur directement, mais le
+\texttt{LaserScan} produit par \texttt{depthimage\_to\_laserscan}. À l'état actuel du
+lancement \texttt{mapping.launch.py}, le remappage pointe encore vers
+\topic{/kinect/depth/image\_raw}. L'étape restante consiste donc à insérer un adaptateur
+\ros{} publiant l'image nettoyée \texttt{16UC1} et son \texttt{CameraInfo}, puis à remapper
+\texttt{depthimage\_to\_laserscan} vers ce topic nettoyé.
+
+\section{Pourquoi le Kinect remplace le radar ultrasonique}
+\label{sec:slam_ultrasonic_vs_kinect}
+
+Le chemin ultrasonique reste présent dans \texttt{ultrasonic\_scan\_node}, mais il n'est
+pas adapté à la conduite autonome rapide. La configuration de \texttt{working\_build}
+effectue un balayage de seulement $-30^\circ$ à $+30^\circ$ par pas de $5^\circ$, prend
+cinq mesures par angle, attend 0.35\,s de stabilisation servo, et publie environ
+0.07 balayage par seconde. Un tel capteur donne une distance scalaire par direction,
+séquentielle et fortement dépendante de l'orientation instantanée du servo~: une chaise,
+un pied de table, un obstacle bas ou une surface inclinée peuvent être manqués ou
+interprétés au mauvais endroit entre deux mises à jour de costmap.
+
+L'article de Kamarudin et al. sur l'analyse du Kinect pour le SLAM 2D, référencé en
+annexe~\ref{app:sources}, rappelle qu'un capteur Kinect utilisé en SLAM 2D reste limité
+par son champ de vision et sa portée, mais que sa donnée de profondeur 3D offre une base
+plus riche pour détecter des objets de formes et tailles variables. Pour \esibot{}, cela
+transforme le problème~: au lieu de construire une costmap à partir d'un faisceau
+ultrasonique lent, on extrait une coupe LaserScan cohérente depuis une scène de profondeur
+complète et mise à jour à cadence vidéo. Le radar ultrasonique garde donc un intérêt de
+diagnostic ou de sécurité locale lente, mais le Kinect est le capteur cohérent pour
+alimenter \texttt{slam\_toolbox}, Nav2 et l'exploration autonome.
 
 \section{Configuration de \texttt{slam\_toolbox}}
 \label{sec:slam_toolbox_config}
@@ -157,3 +207,15 @@ Comme indiqué en section~\ref{sec:slam_toolbox_config}, la carte chargée par d
 une carte d'exemple générique ; la configuration Nav2 elle-même est complète et cohérente
 avec le pipeline Kinect, mais sa validation expérimentale sur une carte réelle restait à
 conduire (chapitre~\ref{ch:resultats}).
+
+\section{Exploration autonome}
+\label{sec:slam_exploration}
+
+La branche \texttt{working\_build} ajoute également \texttt{src/m-explore-ros2} comme
+dépendance Git. Ce module correspond à la couche d'exploration par frontières~: il se
+place au-dessus de la carte \topic{/map}, de l'arbre \gls{tf} et de Nav2, sélectionne des
+frontières entre zones connues et inconnues, puis envoie des objectifs successifs au
+navigateur. Aucun fichier de lancement \texttt{esibot\_*} ne l'orchestre encore avec le
+bringup, le Kinect et Nav2 ; son intégration opérationnelle doit donc vérifier trois
+conditions avant démonstration~: sous-module initialisé dans le workspace, topics
+\topic{/map}/\topic{/tf} stables, et Nav2 actif avec une carte ou un \gls{slam} en ligne.

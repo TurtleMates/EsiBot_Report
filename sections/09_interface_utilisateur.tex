@@ -35,12 +35,12 @@ sécurité réduite par rapport à un dispositif « homme-mort » classique
 
 \texttt{ekf\_odom\_imu.yaml} (\texttt{ekf\_fusion.launch.py}) configure
 \texttt{ekf\_filter\_node} à \textbf{30\,Hz}, \texttt{two\_d\_mode}~: de l'odométrie
-(\topic{/odom}), seules les \emph{vitesses} $(v_x,v_y,\dot\theta)$ sont fusionnées (la
-position absolue n'est pas injectée, évitant un double comptage de dérive) ; de l'\gls{imu}
-(\topic{/imu/data\_raw}), l'orientation de lacet absolue, $\dot\theta$ et l'accélération
-longitudinale $a_x$ sont retenues. Le \texttt{world\_frame} reste \texttt{odom}, laissant
-la correction \topic{map}$\to$\topic{odom} à \texttt{slam\_toolbox}/\gls{amcl} --- une
-séparation propre entre estimation locale (\gls{ekf}) et globale (\gls{slam}/\gls{amcl}).
+(\topic{/odom}), seules les \emph{vitesses} $(v_x,v_y,\dot\theta)$ sont fusionnées ; de
+l'\gls{imu} (\topic{/imu/data\_raw}), seul $\dot\theta$ est retenu. Cette configuration
+évite d'intégrer l'accélération brute du MPU6050 ou une orientation que le nœud ne fournit
+pas. Le \texttt{world\_frame} reste \texttt{odom}, laissant la correction
+\topic{map}$\to$\topic{odom} à \texttt{slam\_toolbox}/\gls{amcl} --- une séparation propre
+entre estimation locale (\gls{ekf}) et globale (\gls{slam}/\gls{amcl}).
 
 \section{Tableau de bord web de télémétrie}
 \label{sec:ihm_dashboard}
@@ -67,7 +67,7 @@ téléopération) --- l'implémentation réelle se concentre sur la \textbf{tél
 \end{table}
 
 L'interface interroge en boucle \texttt{GET /api/imu} (état JSON consolidé, protégé par
-verrou pour la cohérence entre thread \ros{}\,2 et thread HTTP). Le tableau de bord
+verrou pour la cohérence entre thread \ros{} et thread HTTP). Le tableau de bord
 \textbf{n'affiche ni la carte \gls{slam} ni le flux vidéo}, deux fonctionnalités du
 Livrable~5 (chapitre~\ref{ch:limitations}).
 
@@ -85,7 +85,7 @@ retrouvé dans le code livré.
 \section{Mise en Œuvre et Procédures d'Exploitation}
 \label{ch:exploitation}
 
-Le dépôt fournit trois scripts shell (\texttt{scripts/}) qui illustrent la séparation
+Le dépôt fournit plusieurs scripts shell (\texttt{scripts/}) qui illustrent la séparation
 bas-niveau/haut-niveau, contrairement au test T1 du cahier des charges qui suppose un
 unique \texttt{esibot\_full.launch.py}.
 
@@ -93,19 +93,22 @@ unique \texttt{esibot\_full.launch.py}.
 	\centering
 	\caption{Scripts de démarrage disponibles dans \texttt{scripts/}.}
 	\label{tab:startup_scripts}
-	\begin{tabularx}{\linewidth}{L{3.6cm} L{4.6cm} L{4.6cm}}
+	\begin{tabularx}{\linewidth}{L{3.8cm} L{4.4cm} L{4.4cm}}
 		\toprule
 		\textbf{Script} & \textbf{Rôle} & \textbf{Particularité} \\
 		\midrule
 		\texttt{start\_esibot.sh} & lancement manuel du calibrateur & script de développement minimal \\
-		\texttt{start\_esibot\_all.sh} & démarrage production (téléop, \gls{imu}, \gls{ekf}, dashboard) & exige une calibration valide ; radar désactivé \\
-		\texttt{start\_esibot\_all\_no\_\allowbreak calib.sh} & variante sans vérification & active le radar ultrasonique au lieu du Kinect \\
+		\texttt{start\_esibot\_all.sh} & démarrage production (téléop, \gls{imu}, \gls{ekf}, dashboard) & exige une calibration valide ; radar commenté dans le script \\
+		\texttt{start\_esibot\_all\_no\_\allowbreak calib.sh} & variante sans vérification & démarre le radar ultrasonique en plus de la téléopération \\
+		\texttt{start\_esibot\_all\_no\_\allowbreak calib\_no\_imu.sh} & bringup sans calibration obligatoire & \gls{imu}, \gls{ekf} et dashboard activables par variables d'environnement \\
+		\texttt{start\_esibot\_keyboard\_\allowbreak autonomous.sh} & mode commande clavier/autonomie & pas de joystick ; attend un éditeur de \topic{/cmd\_vel} externe \\
+		\texttt{read\_pwm\_pins.py}, \texttt{read\_wheel\_\allowbreak encoders.py} & diagnostic \gls{gpio} & lecture directe des PWM et des ticks encodeurs \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
 \begin{notebox}[title={Aucun script ne démarre le pipeline Kinect/\gls{slam}}]
-	Les trois scripts se limitent à la couche « commande bas-niveau + télémétrie »
+	Les scripts shell se limitent à la couche « commande bas-niveau + télémétrie »
 	(chapitre~\ref{ch:commande_bas_niveau}). Le pipeline de cartographie
 	(\texttt{mapping.launch.py}) et Nav2 (\texttt{navigation2.launch.py}) doivent être
 	démarrés \emph{séparément}, typiquement depuis le PC opérateur (couche haut-niveau,
@@ -128,9 +131,11 @@ ros2 launch esibot_navigation2 navigation2.launch.py \
     map:=$HOME/esibot_ws/maps/salle_test.yaml use_rviz:=true      # navigation
 \end{lstlisting}
 
-Le workspace (\texttt{\textasciitilde/esibot\_ws}) regroupe les huit paquets
-\texttt{esibot\_*} et les dépendances tierces \texttt{kinect\_ros2} /
-\texttt{esp32\_camera\_bridge}, en complément des paquets standards \ros{}\,2 Humble
-(\texttt{slam\_toolbox}, \texttt{nav2\_bringup}, \texttt{robot\_localization},
-\texttt{depthimage\_to\_laserscan}, \texttt{joy}, \texttt{teleop\_twist\_joy},
-\texttt{cv\_bridge}) --- procédure d'installation détaillée au Livrable~8 (README).
+Le workspace (\texttt{\textasciitilde/esibot\_ws}) regroupe les paquets
+\texttt{esibot\_*}, la bibliothèque \texttt{depth\_cleanup}, les dépendances tierces
+\texttt{kinect\_ros2}, \texttt{esp32\_camera\_bridge} et \texttt{m-explore-ros2}, en
+complément des paquets standards \ros{} Humble (\texttt{slam\_toolbox},
+\texttt{nav2\_bringup}, \texttt{robot\_localization}, \texttt{depthimage\_to\_laserscan},
+\texttt{joy}, \texttt{teleop\_twist\_joy}, \texttt{cv\_bridge}). Le fichier
+\texttt{START\_EVERYTHING.md} de \texttt{working\_build} documente la séquence de build,
+les commandes de démarrage manuel, les vérifications de topics et la sauvegarde de carte.

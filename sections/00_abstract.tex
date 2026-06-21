@@ -7,7 +7,7 @@ l'équipe dans le cadre du projet intégrateur IoT de l'École Nationale Supéri
 d'Informatique (ESI Alger). Le cahier des charges initial s'inspire du TurtleBot3 Burger
 (ROBOTIS) : un ESP32-CAM devait piloter directement les moteurs, le servo-moteur et un
 radar ultrasonique rotatif (HC-SR04 + SG90), pendant que le Raspberry\,Pi\,4 hébergeait la
-pile logicielle \ros{}\,2 (\gls{slam}, \gls{ros} 2 Nav2, tableau de bord web).
+pile logicielle \ros{} (\gls{slam}, Nav2, tableau de bord web).
 
 Au fil du développement, l'architecture matérielle réellement implémentée a
 significativement évolué par rapport à ce cahier des charges. Le pilotage des deux
@@ -16,16 +16,17 @@ moteurs à courant continu, la lecture des encodeurs et l'asservissement de vite
 épaulés par une centrale inertielle MPU6050 fusionnée par filtre de Kalman étendu
 (\texttt{robot\_localization}). L'ESP32-CAM est conservé uniquement comme caméra de
 streaming \gls{wifi} (\gls{mjpeg}), sans plus participer à la commande des actionneurs.
-Le radar ultrasonique rotatif a été implémenté en code mais n'est plus utilisé en
-exploitation courante : il a été remplacé par un capteur de profondeur Kinect (v1,
-ère Xbox\,360), piloté par le pilote communautaire \texttt{kinect\_ros2} et converti en
-balayage laser de pseudo-portée via \texttt{depthimage\_to\_laserscan}, alimentant
-\texttt{slam\_toolbox} pour la cartographie en ligne et visualisé sous \gls{rviz}.
+Le radar ultrasonique rotatif reste disponible comme chemin de secours lent, mais la
+cartographie courante repose sur un capteur de profondeur Kinect (v1, ère Xbox\,360),
+piloté par \texttt{kinect\_ros2} et converti en balayage laser via
+\texttt{depthimage\_to\_laserscan}. La branche \texttt{working\_build} ajoute aussi la
+bibliothèque \texttt{depth\_cleanup} pour préparer un flux de profondeur nettoyé et
+référence \texttt{m-explore-ros2} pour l'exploration autonome.
 
 Ce rapport documente fidèlement cette architecture telle que construite : conception
 mécanique (châssis différentiel décrit par le modèle \gls{urdf}), câblage électronique
 déduit des paramètres de code, commande bas-niveau et asservissement moteur, pipeline de
-perception (\gls{imu}, Kinect), cartographie \gls{slam}, navigation autonome \gls{ros} 2
+perception (\gls{imu}, Kinect), cartographie \gls{slam}, navigation autonome \ros{}
 Nav2, tableau de bord web de télémétrie, et téléopération par manette Xbox. Les résultats
 mesurés (ou dérivés analytiquement des paramètres déclarés dans le code lorsque les
 mesures de terrain restaient en cours) sont présentés, suivis d'une analyse critique des
@@ -33,7 +34,7 @@ mesures de terrain restaient en cours) sont présentés, suivis d'une analyse cr
 identifiées, et d'un bilan des perspectives d'amélioration.
 
 \vspace{6mm}
-\noindent\textbf{Mots-clés~:} \ros{}\,2 Humble, robot différentiel, \gls{slam},
+\noindent\textbf{Mots-clés~:} \ros{} Humble, robot différentiel, \gls{slam},
 slam\_toolbox, Nav2, Kinect, Raspberry\,Pi\,4, ESP32-CAM, MPU6050, filtre de Kalman étendu,
 navigation autonome, robotique IoT, TurtleBot3.
 
@@ -45,9 +46,10 @@ servo and a rotating HC-SR04 ultrasonic radar, the as-built system evolved
 significantly: motor control, encoder odometry and \gls{pid} velocity loops now run
 directly on the Raspberry\,Pi\,4 \gls{gpio} headers, fused with an MPU6050 \gls{imu}
 through an \gls{ekf}. The ESP32-CAM is retained solely as a Wi-Fi \gls{mjpeg} video
-streamer, and the ultrasonic radar code path exists but is no longer the primary
-mapping sensor --- a Kinect (v1) \gls{rgbd} camera now feeds \texttt{slam\_toolbox}
-through a depth-image-to-laserscan conversion, with the resulting map visualised in
-\gls{rviz}. This report documents the system exactly as implemented, the deviations
+streamer, and the ultrasonic radar code path is retained as a slow fallback rather than
+the primary mapping sensor. A Kinect (v1) \gls{rgbd} camera now feeds
+\texttt{slam\_toolbox} through \texttt{depthimage\_to\_laserscan}; the
+\texttt{working\_build} branch also adds a metric \texttt{depth\_cleanup} library and an
+\texttt{m-explore-ros2} exploration dependency. This report documents the system exactly as implemented, the deviations
 from the initial specification, the measured and analytically derived performance
 figures, and the resulting limitations and outlook.

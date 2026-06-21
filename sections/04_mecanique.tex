@@ -9,7 +9,7 @@ indépendantes plus une roue folle assurant la stabilité statique, la direction
 uniquement de la différence de vitesse entre les deux roues. Les fichiers \gls{cad}/STL du
 châssis constituent un livrable séparé (Livrable~1) non inclus dans le code analysé~; ce
 chapitre s'appuie donc sur le modèle \gls{urdf} (\texttt{esibot\_description}), source de
-vérité utilisée par \ros{}\,2 pour les transformées et les costmaps, complété par les
+vérité utilisée par \ros{} pour les transformées et les costmaps, complété par les
 constantes électroniques relevées dans le code de commande.
 
 \section{Modèle géométrique}
@@ -78,7 +78,7 @@ contrôle (\texttt{control\_hz}, 10\,Hz par défaut) par~:
 	\text{RPM}_{\text{mesuré}} = \frac{N_{\text{impulsions}}}{\text{CPR}_{\text{effectif}}} \times \frac{60}{\Delta t}
 	\label{eq:rpm_measure}
 \end{equation}
-soit $360°/24=15°$ par impulsion et, avec le rayon de 0.033\,m du calibrateur,
+soit $360^\circ/24=15^\circ$ par impulsion et, avec le rayon de 0.033\,m du calibrateur,
 $\approx$\textbf{8.6\,mm}/impulsion ($2\pi\times0.033/24$).
 
 \section{Câblage électronique}
@@ -100,9 +100,9 @@ HC-SR04, l'implémentation réelle concentre toute l'électronique temps-réel s
 		\toprule
 		\textbf{Fonction} & \textbf{GPIO} & \textbf{Source / nœud} \\
 		\midrule
-		ENA / IN1 / IN2 (moteur g.) & 13 / 20 / 21 & \texttt{motor\_bridge\_node} \\
+		ENA / IN1 / IN2 (moteur g.) & 12 / 5 / 6 & \texttt{motor\_bridge\_node}, \texttt{motor\_calibrator} \\
 		Encodeur gauche & 26 & \texttt{motor\_bridge\_node} (\texttt{pin\_left\_encoder}) \\
-		ENB / IN3 / IN4 (moteur d.) & 12 / 5 / 6 & \texttt{motor\_bridge\_node} \\
+		ENB / IN3 / IN4 (moteur d.) & 13 / 21 / 20 & \texttt{motor\_bridge\_node}, \texttt{motor\_calibrator} \\
 		Encodeur droit & 27 & \texttt{motor\_bridge\_node} (\texttt{pin\_right\_encoder}) \\
 		\gls{i2c} SDA/SCL (bus 1) & 2 / 3 & \texttt{mpu6050\_node} (MPU6050 @ 0x68) \\
 		HC-SR04 SIG (trig/écho) & 23 & \texttt{ultrasonic\_scan\_node} (déprécié) \\
@@ -111,18 +111,18 @@ HC-SR04, l'implémentation réelle concentre toute l'électronique temps-réel s
 	\end{tabularx}
 \end{table}
 
-\textit{Incohérence GPIO~:} \texttt{motor\_bridge\_node.py} lit l'encodeur gauche sur le
-\gls{gpio}~26, tandis que \texttt{motor\_calibrator.py} utilise le \gls{gpio}~17 pour le
-même encodeur --- si le câblage physique n'a pas été harmonisé entre les deux usages, les
-coefficients de calibration PWM$\to$RPM seraient invalides en production (voir
-chapitre~\ref{ch:limitations}).
+Dans la branche \texttt{working\_build}, le câblage logiciel du calibrateur et celui du
+nœud de production sont cohérents~: les deux utilisent les broches BCM~26 et BCM~27 pour
+les encodeurs gauche et droit. La calibration PWM$\to$RPM peut donc alimenter directement
+\texttt{pwm\_mapper.py}, sous réserve que le rayon de roue et l'empattement utilisés par
+l'odométrie soient contrôlés expérimentalement (voir chapitre~\ref{ch:limitations}).
 
 Le pilotage moteur utilise un double pont en H \textbf{L298N} en PWM logiciel
 (\texttt{RPi.GPIO}, 500\,Hz), rapport cyclique borné à $[15\,\%,100\,\%]$
 (\texttt{min/max\_duty\_cycle}) pour compenser la zone morte mécanique. Le MPU6050
 (\gls{i2c} bus~1, adresse \texttt{0x68}) est configuré au démarrage (réveil, diviseur
 d'échantillonnage \texttt{SMPLRT\_DIV=0x07}, filtre passe-bas \texttt{DLPF\_CFG=0x03},
-$\pm2g$/$\pm250°$/s) et publie à \textbf{50\,Hz}. Le Kinect (v1, ère Xbox\,360), capteur de
+$\pm2g$/$\pm250^\circ$/s) et publie à \textbf{50\,Hz}. Le Kinect (v1, ère Xbox\,360), capteur de
 cartographie principal, est relié en \textbf{USB} (non \gls{gpio}) et piloté par le paquet
 communautaire \texttt{kinect\_ros2} (\texttt{libfreenect}).
 

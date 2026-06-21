@@ -1,11 +1,22 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{esibot}[2026/06/20 EsiBot Technical Report Style]
 
-\RequirePackage[T1]{fontenc}
-\RequirePackage[utf8]{inputenc}
-\RequirePackage{helvet}
-\renewcommand{\familydefault}{\sfdefault}
+\RequirePackage{iftex}
+\ifPDFTeX
+	\RequirePackage[T1]{fontenc}
+	\RequirePackage[utf8]{inputenc}
+	\RequirePackage{helvet}
+	\renewcommand{\familydefault}{\sfdefault}
+\else
+	\RequirePackage{fontspec}
+	\setmainfont{TeX Gyre Heros}
+	\setsansfont{TeX Gyre Heros}
+	\setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+\fi
 \RequirePackage{microtype}
+\setlength{\emergencystretch}{3em}
+\hbadness=10000
+\hfuzz=30pt
 
 \RequirePackage[
 	a4paper,
@@ -44,6 +55,15 @@
 	pdfsubject={Robot Mobile Autonome},
 	pdfkeywords={ROS2, SLAM, Nav2, Kinect, Raspberry Pi, ESP32-CAM, differential drive}
 ]{hyperref}
+\pdfstringdefDisableCommands{%
+	\def\ros{ROS 2}%
+	\def\gls#1{#1}%
+	\def\topic#1{#1}%
+	\def\pkg#1{#1}%
+	\def\esibot{EsiBot}%
+	\def\texttt#1{#1}%
+	\def\textbf#1{#1}%
+}
 
 \RequirePackage{titlesec}
 
@@ -256,6 +276,7 @@
 \setcounter{tocdepth}{1}
 
 \RequirePackage[acronym,toc]{glossaries}
+\glsdisablehyper
 
 \RequirePackage{parskip}
 \setlength{\parskip}{3.5pt}
@@ -263,7 +284,7 @@
 \RequirePackage{setspace}
 \setstretch{1.02}
 
-\newcommand{\topic}[1]{\texttt{\textcolor{EsiAccent}{#1}}}
+\DeclareRobustCommand{\topic}[1]{\textcolor{EsiAccent}{\nolinkurl{#1}}}
 \newcommand{\rnode}[1]{\texttt{\textbf{#1}}}
 \newcommand{\pkg}[1]{\textsf{\textcolor{EsiAccent}{#1}}}
 \newcommand{\hw}[1]{\textsc{#1}}

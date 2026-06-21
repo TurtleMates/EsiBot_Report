@@ -1,11 +1,11 @@
 \chapter{Annexes Techniques}
 \label{app:topics}
 
-\section{Table exhaustive des topics \ros{}\,2}
+\section{Table exhaustive des topics \ros{}}
 \label{app:topics_full}
 
 \begin{longtable}{L{4cm} L{3.6cm} L{3.4cm} L{3cm}}
-	\caption{Liste exhaustive des topics \ros{}\,2 identifiés dans le code source.}
+	\caption{Liste exhaustive des topics \ros{} identifiés dans le code source.}
 	\label{tab:topics_full} \\
 	\toprule
 	\textbf{Topic} & \textbf{Type} & \textbf{Publié par} & \textbf{Souscrit par} \\
@@ -35,7 +35,7 @@
 	\topic{/plan} & nav\_msgs/Path & planner\_server & controller\_server, \gls{rviz} \\
 \end{longtable}
 
-\section{API HTTP du tableau de bord et paquets \ros{}\,2 du dépôt}
+\section{API HTTP du tableau de bord et paquets \ros{} du dépôt}
 \label{app:http_api}
 \label{app:packages}
 
@@ -47,7 +47,7 @@ roulis/tangage affichés.
 
 \begin{table}[H]
 	\centering
-	\caption{Paquets \ros{}\,2 du workspace \texttt{Esi\_Bot}.}
+	\caption{Paquets \ros{} du workspace \texttt{Esi\_Bot}.}
 	\label{tab:packages_summary}
 	\begin{tabularx}{\linewidth}{L{3.6cm} L{8.8cm}}
 		\toprule
@@ -60,8 +60,10 @@ roulis/tangage affichés.
 		\texttt{esibot\_slam} & lancement du pipeline Kinect $\to$ \texttt{depthimage\_to\_laserscan} $\to$ \texttt{slam\_toolbox} \\
 		\texttt{esibot\_navigation2} & lancement Nav2, paramètres \texttt{esibot.yaml}, carte par défaut \\
 		\texttt{esibot\_dashboard} & \texttt{imu\_web\_dashboard} (serveur HTTP de télémétrie) \\
+		\texttt{depth\_cleanup} & bibliothèque C++/OpenCV de nettoyage métrique des images Kinect \texttt{16UC1} \\
 		\texttt{kinect\_ros2} (externe) & pilote Kinect (v1), basé sur \texttt{libfreenect} \\
-		\texttt{esp32\_camera\_bridge} (externe) & pont \gls{mjpeg} HTTP $\to$ \ros{}\,2 \texttt{Image} \\
+		\texttt{m-explore-ros2} (externe) & exploration autonome par frontières au-dessus de Nav2 et \topic{/map} \\
+		\texttt{esp32\_camera\_bridge} (externe) & pont \gls{mjpeg} HTTP $\to$ \ros{} \texttt{Image} \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
@@ -70,9 +72,13 @@ roulis/tangage affichés.
 \label{app:sources}
 
 L'ensemble du contenu technique de ce rapport a été établi à partir des sources
-suivantes, fournies par l'équipe~: le dépôt de code source \texttt{Esi\_Bot} (paquets
-\texttt{esibot\_*}), le pilote \texttt{kinect\_ros2}, le firmware et le pont \ros{}\,2 de
-l'ESP32-CAM (\texttt{esp32-camera}), ainsi que la fiche de spécification officielle du
-projet \esibot{} (cahier des charges, comparatif TurtleBot3, liste des livrables) et les
-deux schémas d'architecture fournis par l'équipe
-(figures~\ref{fig:global_archi} et~\ref{fig:topics_stream_spec}).
+suivantes, fournies par l'équipe~: le dépôt de code source \texttt{Esi\_Bot} (branche
+\texttt{working\_build}, paquets \texttt{esibot\_*}), le pilote \texttt{kinect\_ros2}, le
+firmware et le pont \ros{} de l'ESP32-CAM (\texttt{esp32-camera}), ainsi que la fiche de
+spécification officielle du projet \esibot{} (cahier des charges, comparatif TurtleBot3,
+liste des livrables) et les deux schémas d'architecture fournis par l'équipe
+(figures~\ref{fig:global_archi} et~\ref{fig:topics_stream_spec}). La discussion Kinect
+versus capteur ultrasonique s'appuie aussi sur l'article de Kamarudin, Mamduh, Shakaff et
+Zakaria, \emph{Performance Analysis of the Microsoft Kinect Sensor for 2D Simultaneous
+Localization and Mapping (SLAM) Techniques}, \emph{Sensors} 14(12), 23365--23387, 2014,
+DOI \texttt{10.3390/s141223365}.
