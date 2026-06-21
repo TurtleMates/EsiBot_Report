@@ -1,0 +1,274 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{esibot}[2026/06/20 EsiBot Technical Report Style]
+
+\RequirePackage[T1]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\RequirePackage{microtype}
+
+\RequirePackage[
+	a4paper,
+	top=20mm, bottom=20mm,
+	left=25mm, right=20mm,
+	headheight=21pt
+]{geometry}
+
+\RequirePackage[table]{xcolor}
+% ── ESI institutional palette (red) blended with a slate technical palette ──
+\definecolor{EsiRed}{HTML}{CC0000}
+\definecolor{EsiRedDark}{HTML}{8C0000}
+\definecolor{EsiBlue}{HTML}{1C2025}
+\definecolor{EsiAccent}{HTML}{4A5A6A}
+\definecolor{EsiGray}{HTML}{F5F5F5}
+\definecolor{EsiDark}{HTML}{222222}
+\definecolor{EsiGreen}{HTML}{2E6B47}
+\definecolor{CommentGray}{HTML}{888888}
+\definecolor{ShellBg}{HTML}{EEF1F4}
+\definecolor{ShellBorder}{HTML}{4A5A6A}
+\definecolor{ShellText}{HTML}{1C2025}
+\definecolor{ShellComment}{HTML}{7A8A9A}
+\definecolor{ShellString}{HTML}{2E6B47}
+\definecolor{ShellKeyword}{HTML}{2A4A6A}
+
+\RequirePackage[
+	colorlinks=true,
+	linkcolor=EsiBlue,
+	citecolor=EsiAccent,
+	urlcolor=EsiAccent,
+	plainpages=false,
+	pdfpagelabels=true,
+	bookmarksnumbered=true,
+	pdftitle={EsiBot --- Rapport Technique},
+	pdfauthor={Equipe EsiBot - ESI Alger},
+	pdfsubject={Robot Mobile Autonome},
+	pdfkeywords={ROS2, SLAM, Nav2, Kinect, Raspberry Pi, ESP32-CAM, differential drive}
+]{hyperref}
+
+\RequirePackage{titlesec}
+
+\titleformat{\chapter}[display]
+{\normalfont\Large\bfseries\color{EsiBlue}}
+{\normalfont\footnotesize\color{EsiRed}\MakeUppercase{\chaptertitlename}\ \thechapter}
+{2pt}{\Large}
+\titlespacing*{\chapter}{0pt}{-26pt}{8pt}
+
+\titleformat{\section}
+{\normalfont\normalsize\bfseries\color{EsiBlue}}
+{\thesection}{1em}{}[{\color{EsiAccent}\titlerule[0.3pt]}]
+\titlespacing*{\section}{0pt}{9pt}{3pt}
+
+\titleformat{\subsection}
+{\normalfont\normalsize\bfseries\color{EsiDark}}
+{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+
+\titleformat{\subsubsection}
+{\normalfont\normalsize\itshape\color{EsiDark}}
+{\thesubsubsection}{1em}{}
+\titlespacing*{\subsubsection}{0pt}{4pt}{1pt}
+
+\RequirePackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\headrule}{
+	\hbox to\headwidth{\color{EsiRed}\leaders\hrule height\headrulewidth\hfill}}
+\fancyhead[L]{\small\textbf{EsiBot}\enspace\textcolor{CommentGray}{--- Robot Mobile Autonome}}
+\fancyhead[R]{\small\textcolor{CommentGray}{\leftmark}}
+\fancyfoot[C]{\small\textcolor{CommentGray}{\thepage}}
+
+\fancypagestyle{plain}{
+	\fancyhf{}
+	\renewcommand{\headrulewidth}{0pt}
+	\fancyfoot[C]{\small\textcolor{CommentGray}{\thepage}}
+}
+
+\RequirePackage{booktabs}
+\RequirePackage{array}
+\RequirePackage{tabularx}
+\RequirePackage{longtable}
+\renewcommand{\arraystretch}{1.05}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+\RequirePackage{etoolbox}
+\AtBeginEnvironment{tabularx}{\small}
+\AtBeginEnvironment{longtable}{\small}
+\AtBeginEnvironment{tabular}{\small}
+\RequirePackage{subcaption}
+\captionsetup{
+	font=small,
+	labelfont=bf,
+	labelsep=period,
+	skip=2pt
+}
+
+\RequirePackage{listings}
+
+% ── Source code (Python / C++ / XML / YAML) ─────────────────────────────────
+\lstdefinestyle{ROS2Style}{
+	backgroundcolor=\color{EsiGray},
+	basicstyle=\ttfamily\scriptsize,
+	keywordstyle=\bfseries\color{EsiAccent},
+	commentstyle=\itshape\color{CommentGray},
+	stringstyle=\color{EsiGreen},
+	numberstyle=\tiny\color{CommentGray},
+	numbers=left,
+	numbersep=8pt,
+	frame=single,
+	framerule=0.3pt,
+	rulecolor=\color{CommentGray},
+	breaklines=true,
+	breakatwhitespace=false,
+	tabsize=2,
+	captionpos=b,
+	showstringspaces=false,
+	xleftmargin=2em
+}
+
+\lstdefinestyle{YAMLStyle}{
+	backgroundcolor=\color{EsiGray},
+	basicstyle=\ttfamily\scriptsize,
+	keywordstyle=\bfseries\color{EsiAccent},
+	commentstyle=\itshape\color{CommentGray},
+	stringstyle=\color{EsiGreen},
+	numberstyle=\tiny\color{CommentGray},
+	numbers=left,
+	numbersep=8pt,
+	frame=single,
+	framerule=0.3pt,
+	rulecolor=\color{CommentGray},
+	breaklines=true,
+	tabsize=2,
+	captionpos=b,
+	showstringspaces=false,
+	xleftmargin=2em
+}
+
+% ── Shell / Bash commands ───────────────────────────────────────────────────
+\lstdefinestyle{BashStyle}{
+	backgroundcolor=\color{ShellBg},
+	basicstyle=\ttfamily\scriptsize\color{ShellText},
+	keywordstyle=\bfseries\color{ShellKeyword},
+	commentstyle=\itshape\color{ShellComment},
+	stringstyle=\color{ShellString},
+	numbers=none,
+	frame=l,
+	framerule=2.8pt,
+	rulecolor=\color{ShellBorder},
+	breaklines=true,
+	breakatwhitespace=false,
+	tabsize=2,
+	captionpos=b,
+	showstringspaces=false,
+	xleftmargin=1.6em,
+	xrightmargin=0.6em,
+	aboveskip=6pt,
+	belowskip=4pt
+}
+
+\lstset{style=ROS2Style}
+\lstset{literate=%
+	{á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1%
+	{Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1%
+	{à}{{\`a}}1 {è}{{\`e}}1 {ù}{{\`u}}1 {À}{{\`A}}1 {È}{{\`E}}1%
+	{ç}{{\c c}}1 {Ç}{{\c C}}1%
+	{â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1%
+	{Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1%
+	{ë}{{\"e}}1 {ï}{{\"i}}1 {ü}{{\"u}}1%
+	{œ}{{\oe}}1 {Œ}{{\OE}}1%
+	{°}{{\textdegree}}1 {’}{{'}}1 {«}{{\guillemotleft}}1 {»}{{\guillemotright}}1%
+}
+
+\RequirePackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+\newtcolorbox{notebox}[1][]{
+	enhanced,
+	colback=EsiGray,
+	colframe=EsiAccent,
+	colbacktitle=EsiAccent,
+	coltitle=white,
+	fonttitle=\bfseries\small,
+	title=Note,
+	#1
+}
+\newtcolorbox{warnbox}[1][]{
+	enhanced,
+	colback=EsiGray,
+	colframe=EsiRed,
+	colbacktitle=EsiRed,
+	coltitle=white,
+	fonttitle=\bfseries\small,
+	title={Limitation},
+	#1
+}
+\newtcolorbox{conceptbox}[2][]{
+	enhanced,
+	colback=EsiGray,
+	colframe=EsiAccent,
+	colbacktitle=EsiBlue,
+	coltitle=white,
+	fonttitle=\bfseries\small,
+	attach boxed title to top left={yshift=-2mm,xshift=4mm},
+	boxed title style={colback=EsiBlue,colframe=EsiBlue},
+	title={#2},
+	#1
+}
+\newtcolorbox{ecartbox}[1][]{
+	enhanced,
+	colback=EsiGray,
+	colframe=EsiRedDark,
+	colbacktitle=EsiRedDark,
+	coltitle=white,
+	fonttitle=\bfseries\small,
+	title={Écart vs. cahier des charges},
+	#1
+}
+
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{siunitx}
+\sisetup{per-mode=symbol, detect-all}
+\DeclareSIUnit{\fps}{fps}
+\DeclareSIUnit{\rpm}{rpm}
+\DeclareSIUnit{\baud}{baud}
+
+\RequirePackage{graphicx}
+\RequirePackage{float}
+\RequirePackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,calc,decorations.pathreplacing}
+\RequirePackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\RequirePackage{enumitem}
+\setlist[itemize]{leftmargin=1.5em, itemsep=1pt, parsep=0pt}
+\setlist[enumerate]{leftmargin=1.5em, itemsep=1pt, parsep=0pt}
+
+\RequirePackage{tocloft}
+\renewcommand{\cftchapfont}{\bfseries\color{EsiBlue}}
+\renewcommand{\cftsecfont}{\color{EsiDark}}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+\setlength{\cftbeforechapskip}{0pt}
+\setlength{\cftbeforesecskip}{0pt}
+\setcounter{tocdepth}{1}
+
+\RequirePackage[acronym,toc]{glossaries}
+
+\RequirePackage{parskip}
+\setlength{\parskip}{3.5pt}
+\setlength{\parindent}{0pt}
+\RequirePackage{setspace}
+\setstretch{1.02}
+
+\newcommand{\topic}[1]{\texttt{\textcolor{EsiAccent}{#1}}}
+\newcommand{\rnode}[1]{\texttt{\textbf{#1}}}
+\newcommand{\pkg}[1]{\textsf{\textcolor{EsiAccent}{#1}}}
+\newcommand{\hw}[1]{\textsc{#1}}
+\newcommand{\file}[1]{\texttt{#1}}
+\newcommand{\ros}{ROS\,2}
+\newcommand{\esibot}{\textbf{EsiBot}}
+
+\endinput

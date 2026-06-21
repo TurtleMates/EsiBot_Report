@@ -1,0 +1,162 @@
+\chapter{Cartographie et Navigation Autonome}
+\label{ch:slam}
+
+\section{Pipeline Kinect $\to$ \gls{slam}}
+\label{sec:slam_overview}
+
+L'écart le plus significatif entre le cahier des charges et l'implémentation réelle se
+situe ici~: la source de données du \gls{slam} n'est pas le radar ultrasonique rotatif,
+mais un capteur de profondeur \textbf{Kinect}, converti en balayage laser 2D. Le principe
+d'interchangeabilité de capteur défendu par le cahier des charges est conservé~: un
+message standard \texttt{sensor\_msgs/LaserScan} sur \topic{/scan} alimente
+\texttt{slam\_toolbox} sans aucune modification de ce dernier. Le fichier
+\texttt{mapping.launch.py} orchestre la chaîne (figure~\ref{fig:slam_pipeline}).
+
+\begin{figure}[H]
+	\centering
+	\resizebox{0.92\linewidth}{!}{%
+		\begin{tikzpicture}[
+				stage/.style={draw, rounded corners=4pt, minimum height=1.1cm, minimum width=2.7cm,
+						fill=EsiGray, font=\scriptsize\bfseries, text=EsiDark, align=center},
+				arr/.style={-Stealth, thick, EsiBlue!80},
+				lbl/.style={font=\tiny, text=EsiAccent, align=center}
+			]
+			\node[stage, fill=EsiGreen!15] (kinect) at (0,0) {Kinect (v1)\\\tiny capteur RGB-D};
+			\node[stage, fill=EsiGreen!15] (driver) at (3.4,0) {kinect\_ros2\_node\\\tiny pilote libfreenect};
+			\node[stage, fill=EsiAccent!18] (d2l) at (7.0,0) {depthimage\_to\_\\laserscan\_node};
+			\node[stage, fill=EsiBlue!15] (slam) at (10.6,0) {async\_slam\_\\toolbox\_node};
+			\node[stage, fill=EsiBlue!15] (rviz) at (10.6,-2.1) {\gls{rviz} 2\\\tiny visualisation};
+
+			\draw[arr] (kinect) -- node[lbl, above]{USB} (driver);
+			\draw[arr] (driver) -- node[lbl, above]{/kinect/depth/\\image\_raw} (d2l);
+			\draw[arr] (d2l) -- node[lbl, above]{/scan\\(LaserScan)} (slam);
+			\draw[arr] (slam) -- node[lbl, right]{/map} (rviz);
+			\draw[arr] (slam.south) -- ++(0,-0.7) -| node[lbl, pos=0.25, above]{/tf (map$\to$odom)} (rviz.north);
+		\end{tikzpicture}
+	}
+	\caption{Pipeline de cartographie tel qu'orchestré par \texttt{mapping.launch.py}.}
+	\label{fig:slam_pipeline}
+\end{figure}
+
+Le pilote \texttt{kinect\_ros2} (espace de noms \texttt{kinect}, basé sur
+\texttt{libfreenect}) expose \topic{/kinect/depth/image\_raw} et
+\topic{/kinect/depth/camera\_info}. Un \texttt{static\_transform\_publisher} relie
+\texttt{camera\_depth\_frame} (\gls{urdf}) au repère natif \texttt{kinect\_depth} par une
+transformée identité. Le nœud \texttt{depthimage\_to\_laserscan\_node}
+\label{sec:slam_d2l}
+projette ensuite une
+bande horizontale de l'image de profondeur en balayage laser synthétique
+(tableau~\ref{tab:d2l_params}).
+
+\begin{table}[H]
+	\centering
+	\caption{Paramètres de \texttt{depthimage\_to\_laserscan\_node} (\texttt{mapping.launch.py}).}
+	\label{tab:d2l_params}
+	\begin{tabularx}{\linewidth}{L{4cm} C{2.4cm} L{6.2cm}}
+		\toprule
+		\textbf{Paramètre} & \textbf{Valeur} & \textbf{Signification} \\
+		\midrule
+		\texttt{scan\_height} & 10\,px & bande de l'image de profondeur moyennée par balayage \\
+		\texttt{scan\_time} & 0.033\,s & période nominale ($\approx$30\,Hz) \\
+		\texttt{range\_min} / \texttt{max} & 0.35 / 4.0\,m & portée exploitable du Kinect \\
+		\texttt{output\_frame} & \texttt{camera\_depth\_frame} & repère \gls{tf} du \texttt{LaserScan} \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\begin{notebox}[title={Champ de vision réduit}]
+	Le Kinect couvre $\approx$57° horizontalement contre 180°--360° pour le radar rotatif
+	prévu~: les zones latérales/arrière restent aveugles à un instant donné, nécessitant
+	une rotation active du robot pendant la cartographie pour compenser.
+\end{notebox}
+
+\section{Configuration de \texttt{slam\_toolbox}}
+\label{sec:slam_toolbox_config}
+
+\texttt{slam\_toolbox\_esibot\_kinect.yaml} configure \texttt{async\_slam\_toolbox\_node}
+en mode \texttt{mapping} (solveur Ceres, \texttt{SPARSE\_NORMAL\_CHOLESKY}). Le
+tableau~\ref{tab:slam_params} résume les paramètres clés.
+
+\begin{table}[H]
+	\centering
+	\caption{Paramètres clés de \texttt{slam\_toolbox} pour \esibot{}.}
+	\label{tab:slam_params}
+	\begin{tabularx}{\linewidth}{L{5cm} C{2.4cm} L{5cm}}
+		\toprule
+		\textbf{Paramètre} & \textbf{Valeur} & \textbf{Rôle} \\
+		\midrule
+		\texttt{resolution} & 0.05\,m & taille de cellule de la grille d'occupation \\
+		\texttt{min/max\_laser\_range} & 0.35 / 4.0\,m & cohérent avec \texttt{depthimage\_to\_laserscan} \\
+		\texttt{minimum\_time\_interval} & 0.5\,s & intervalle minimal entre balayages traités \\
+		\texttt{minimum\_travel\_distance/heading} & 0.15\,m / 0.15\,rad & filtre anti-suréchantillonnage \\
+		\texttt{do\_loop\_closing} & \texttt{true} & fermeture de boucle activée (rayon 3.0\,m) \\
+		\texttt{transform\_publish\_period} & 0.02\,s & publication \topic{map}$\to$\topic{odom} ($\approx$50\,Hz) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\texttt{use\_map\_saver: true} permet la sauvegarde à la demande
+(\texttt{map\_saver\_cli}) en paire \texttt{map.pgm}/\texttt{map.yaml}, ensuite consommée
+par Nav2.
+
+\begin{warnbox}
+	\label{sec:slam_map_state}
+	La carte actuelle de \texttt{esibot\_navigation2} (résolution 0.05\,m, origine
+	$(-10,-10,0)$) correspond, après inspection visuelle, à la carte hexagonale d'exemple
+	par défaut TurtleBot3/Nav2, et non à une carte réelle capturée par le Kinect
+	d'\esibot{}. La chaîne \gls{slam}~$\to$~sauvegarde~$\to$~rechargement Nav2 restait donc
+	à valider sur le terrain au moment de la rédaction (chapitre~\ref{ch:resultats}).
+\end{warnbox}
+
+La configuration \gls{rviz} \texttt{esibot\_slam\_map\allowbreak.rviz} constitue l'outil de
+visualisation principal du projet (carte, balayage \topic{/scan}, modèle \gls{urdf},
+arbre \gls{tf} complet), plutôt qu'une vue cartographique intégrée au tableau de bord web
+(chapitre~\ref{ch:ihm}).
+
+\section{Navigation Autonome avec Nav2}
+\label{ch:navigation}
+
+La navigation autonome repose sur la pile standard \textbf{Nav2}
+(\texttt{navigation2.launch.py}, paquet \texttt{esibot\_navigation2}), chargeant la carte
+statique, le fichier \texttt{esibot.yaml}, et orchestrant localisation, costmaps,
+planificateur, contrôleur, comportements, lisseur de vitesse et moniteur de collision.
+
+La localisation utilise \gls{amcl} (filtre particulaire, 500--2000 particules, modèle
+\texttt{likelihood\_field}, \texttt{DifferentialMotionModel}, pose initiale non définie
+automatiquement). Les costmaps locale (fenêtre $3\times3$\,m) et globale
+\label{sec:nav_costmaps}
+partagent une
+résolution de \textbf{0.05\,m/cellule}, un rayon de robot de \textbf{0.2\,m}, et une
+inflation de \textbf{0.35\,m} (facteur 5.0). Le planificateur global
+\texttt{NavfnPlanner} (Dijkstra, tolérance 0.5\,m) alimente le contrôleur local \gls{dwb},
+dont les bornes sont résumées au tableau~\ref{tab:dwb_params}.
+
+\begin{table}[H]
+	\centering
+	\caption{Bornes cinématiques \gls{dwb} et \gls{amcl} (extrait de \texttt{esibot.yaml}).}
+	\label{tab:dwb_params}
+	\begin{tabularx}{\linewidth}{L{6cm} C{2.4cm} L{3.2cm}}
+		\toprule
+		\textbf{Paramètre} & \textbf{Valeur} & \textbf{Unité} \\
+		\midrule
+		Vitesse linéaire min. / max. (\gls{dwb}) & 0.2 / 0.3 & \unit{\metre\per\second} \\
+		Vitesse angulaire max. (\gls{dwb}) & 0.5 & \unit{\radian\per\second} \\
+		Accélération / décélération linéaire & 3.0 / $-2.5$ & \unit{\metre\per\second\squared} \\
+		Tolérance position du but (\texttt{FollowPath}) & 0.05 & \unit{\metre} \\
+		Vitesse max. (lisseur de vitesse) & 0.5 / 2.5 & m/s / rad/s \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Les critères de score \gls{dwb} (\texttt{PathAlign} 32, \texttt{GoalDist} 24,
+\texttt{BaseObstacle} 0.02, \texttt{RotateToGoal} 32) privilégient nettement le respect du
+chemin global sur la vitesse, cohérent avec un robot de faible gabarit en intérieur. Le
+serveur de comportements expose \texttt{Spin}, \texttt{BackUp}, \texttt{DriveOnHeading},
+\texttt{Wait}, \texttt{AssistedTeleop} ; un \texttt{collision\_monitor} surveille un disque
+d'arrêt (rayon 0.1\,m), un polygone de ralentissement et un polygone d'approche (horizon
+2\,s) avant transmission finale à \topic{/cmd\_vel}.
+
+Comme indiqué en section~\ref{sec:slam_toolbox_config}, la carte chargée par défaut est
+une carte d'exemple générique ; la configuration Nav2 elle-même est complète et cohérente
+avec le pipeline Kinect, mais sa validation expérimentale sur une carte réelle restait à
+conduire (chapitre~\ref{ch:resultats}).

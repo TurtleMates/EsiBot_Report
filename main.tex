@@ -1,0 +1,78 @@
+\documentclass[10pt, a4paper, oneside]{report}
+\PassOptionsToPackage{nopatch=footnote}{microtype}
+\usepackage{esibot}
+
+% ── French chapter / front-matter names (no babel to keep glossaries simple) ──
+\renewcommand{\contentsname}{Table des matières}
+\renewcommand{\listfigurename}{Liste des figures}
+\renewcommand{\listtablename}{Liste des tableaux}
+\renewcommand{\chaptername}{Chapitre}
+\renewcommand{\appendixname}{Annexe}
+\renewcommand{\bibname}{Références}
+
+\makeglossaries
+\newacronym{ros}{ROS}{Robot Operating System}
+\newacronym{slam}{SLAM}{Simultaneous Localization and Mapping}
+\newacronym{mcu}{MCU}{Microcontroller Unit}
+\newacronym{pwm}{PWM}{Pulse-Width Modulation}
+\newacronym{uart}{UART}{Universal Asynchronous Receiver-Transmitter}
+\newacronym{wifi}{WiFi}{Wireless Fidelity (IEEE 802.11)}
+\newacronym{urdf}{URDF}{Unified Robot Description Format}
+\newacronym{tf}{TF}{Transform Tree (arbre des transformées)}
+\newacronym{imu}{IMU}{Inertial Measurement Unit}
+\newacronym{pid}{PID}{Proportional-Integral-Derivative}
+\newacronym{mjpeg}{MJPEG}{Motion JPEG}
+\newacronym{gpio}{GPIO}{General-Purpose Input/Output}
+\newacronym{iot}{IoT}{Internet of Things}
+\newacronym{cad}{CAD}{Computer-Aided Design (CAO)}
+\newacronym{pla}{PLA}{Polylactic Acid}
+\newacronym{amcl}{AMCL}{Adaptive Monte Carlo Localization}
+\newacronym{dwb}{DWB}{Dynamic Window-Based local planner}
+\newacronym{rviz}{RViz2}{ROS Visualisation tool (v2)}
+\newacronym{ekf}{EKF}{Extended Kalman Filter}
+\newacronym{rgbd}{RGB-D}{Red-Green-Blue + Depth (camera)}
+\newacronym{i2c}{I2C}{Inter-Integrated Circuit bus}
+\newacronym{cpr}{CPR}{Counts Per Revolution}
+\newacronym{rpi}{RPi}{Raspberry Pi}
+\newacronym{sbc}{SBC}{Single-Board Computer}
+\newacronym{occgrid}{OccupancyGrid}{grille d'occupation 2D probabiliste}
+\newacronym{bt}{BT}{Behavior Tree (arbre de comportement)}
+\newacronym{cli}{CLI}{Command-Line Interface}
+
+\title{}
+\date{}
+\author{}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\include{sections/00_titlepage}
+\hypersetup{pageanchor=true}
+
+\pagenumbering{roman}
+\include{sections/00_abstract}
+
+{
+	\footnotesize
+	\hypersetup{linkcolor=black}
+	\tableofcontents
+}
+
+\cleardoublepage
+\pagenumbering{arabic}
+
+\include{sections/01_introduction}
+\include{sections/02_presentation_projet}
+\include{sections/03_architecture_globale}
+\include{sections/04_mecanique}
+\include{sections/06_commande_bas_niveau}
+\include{sections/07_slam_kinect}
+\include{sections/09_interface_utilisateur}
+\include{sections/11_resultats_tests}
+\include{sections/12_limitations}
+\include{sections/13_bilan}
+
+\appendix
+\include{sections/A_appendix}
+
+\end{document}

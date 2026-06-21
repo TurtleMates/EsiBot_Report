@@ -1,0 +1,139 @@
+\chapter{Analyse Critique, Limitations et Écarts}
+\label{ch:limitations}
+
+Ce chapitre consolide, en un point unique, l'ensemble des écarts entre le cahier des
+charges et l'implémentation réelle, ainsi que les incohérences et limites techniques
+relevées au fil des chapitres précédents.
+
+\section{Écarts architecturaux majeurs}
+\label{sec:lim_archi}
+
+\begin{ecartbox}
+	Le tableau~\ref{tab:ecarts_archi} synthétise les cinq écarts les plus structurants
+	entre la conception prévue et le système livré.
+\end{ecartbox}
+
+\begin{table}[H]
+	\centering
+	\caption{Synthèse des écarts architecturaux majeurs.}
+	\label{tab:ecarts_archi}
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabularx}{\linewidth}{L{3.6cm} L{4cm} L{4.6cm}}
+		\toprule
+		\textbf{Aspect} & \textbf{Cahier des charges} & \textbf{Implémentation réelle} \\
+		\midrule
+		Commande moteurs/servo & ESP32-CAM (\gls{gpio} ESP32) & Raspberry\,Pi\,4 (\gls{gpio} RPi) ; ESP32-CAM = caméra seule \\
+		Capteur de cartographie & Radar ultrasonique rotatif (HC-SR04 + SG90) & Capteur de profondeur Kinect (v1) via \texttt{kinect\_ros2} + \texttt{depthimage\_to\_laserscan} ; radar conservé en code mais désactivé \\
+		Passerelle web & \texttt{rosbridge\_suite} (WebSocket) & Serveur HTTP Python maison (polling JSON) \\
+		Tableau de bord & Carte + vidéo + commandes + goal & Télémétrie \gls{imu}/odométrie/manette uniquement \\
+		Vision par ordinateur & \texttt{vision\_node} (OpenCV, détection ligne/obstacles) & Non implémenté (flux caméra disponible mais non traité) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Ces écarts ne remettent pas en cause la cohérence d'ensemble du système --- au contraire,
+ils témoignent d'une démarche d'ingénierie itérative cohérente (centralisation de la
+commande temps-réel sur une plate-forme unique, substitution de capteur à interface
+\ros{}\,2 inchangée). Ils doivent néanmoins être explicitement assumés dans la
+documentation du projet (README, soutenance) pour éviter toute ambiguïté avec la fiche de
+projet officielle.
+
+\section{Incohérences internes relevées dans le code}
+\label{sec:lim_geom}
+
+Trois incohérences de paramétrage ont été identifiées par comparaison croisée des fichiers
+source, résumées au tableau~\ref{tab:incoherences}.
+
+\begin{table}[H]
+	\centering
+	\caption{Incohérences de paramétrage relevées entre modules.}
+	\label{tab:incoherences}
+	\begin{tabularx}{\linewidth}{L{3.4cm} L{4.6cm} L{4.2cm}}
+		\toprule
+		\textbf{Paramètre} & \textbf{Valeurs en conflit} & \textbf{Impact} \\
+		\midrule
+		Rayon de roue & \gls{urdf}: 0.025\,m\,/\,calibrateur: 0.033\,m (écart 32\,\%) &
+		biais systématique sur la conversion vitesse$\leftrightarrow$RPM et sur la
+		visualisation \gls{rviz} du modèle 3D \\
+		Empattement (\texttt{wheel\_base}) & \gls{urdf}: 0.14\,m\,/\,\texttt{motor\_bridge\_node}
+		(défaut): 0.16\,m & biais sur la vitesse angulaire effective pour une commande
+		\topic{/cmd\_vel} donnée (équation~\ref{eq:diff_drive}) \\
+		\gls{gpio} encodeur gauche & \texttt{motor\_bridge\_node}: GPIO\,26\,/\,
+		\texttt{motor\_calibrator}: GPIO\,17 & calibration potentiellement réalisée sur un
+		signal différent de celui lu en production, si le câblage physique n'a pas été
+		ajusté en conséquence \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\begin{warnbox}[title={Recommandation}]
+	Il est recommandé de centraliser ces constantes physiques (rayon de roue, empattement,
+	affectations \gls{gpio}) dans un unique fichier de paramètres \ros{}\,2 partagé
+	(\texttt{esibot\_hardware.yaml}), chargé identiquement par \texttt{motor\_bridge\_node},
+	\texttt{motor\_calibrator} et l'\gls{urdf}, plutôt que des valeurs par défaut dupliquées
+	dans chaque module --- une mesure corrective simple à fort impact sur la fiabilité
+	odométrique.
+\end{warnbox}
+
+\section{Limitations intrinsèques du capteur Kinect}
+\label{sec:lim_kinect}
+
+\begin{itemize}
+	\item \textbf{Champ de vision restreint} ($\approx$57° horizontal contre 180°--360°
+	      pour le radar prévu) --- nécessite une rotation active du robot pour couvrir
+	      l'environnement, ralentissant la phase de cartographie et augmentant le risque de
+	      zones non couvertes en bordure de carte.
+	\item \textbf{Zone aveugle rapprochée} (portée minimale 0.35\,m) --- les obstacles très
+	      proches du robot ne sont pas détectés par le pipeline \topic{/scan}, ce qui repose
+	      sur les marges d'inflation des costmaps (section~\ref{sec:nav_costmaps}) plutôt que
+	      sur une détection directe.
+	\item \textbf{Sensibilité à la lumière infrarouge ambiante} --- la technologie de
+	      profondeur du Kinect (v1) repose sur la projection d'un motif infrarouge structuré,
+	      dégradée en présence de forte lumière naturelle, limitant l'usage à des environnements
+	      intérieurs contrôlés (cohérent avec le cadre du scénario de démonstration en
+	      salle).
+	\item \textbf{Charge USB et alimentation} --- le Kinect (v1) consomme une puissance et
+	      une bande passante USB significativement supérieures à un module HC-SR04, un facteur
+	      à intégrer dans le bilan de puissance global (section~\ref{sec:elec_power}) et dans
+	      le choix du port USB du Raspberry\,Pi\,4 utilisé.
+\end{itemize}
+
+\section{Considérations de sûreté de fonctionnement}
+\label{sec:lim_safety}
+
+\begin{itemize}
+	\item \textbf{Absence de bouton d'activation en téléopération} (section~\ref{sec:ihm_teleop})
+	      --- réduit la marge de sécurité face à une commande involontaire.
+	\item \textbf{Absence de supervision de batterie} --- aucun nœud ne publie
+	      \topic{/battery\_state} ; un arrêt par épuisement de batterie en cours de mission
+	      n'est ni anticipé ni signalé à l'opérateur.
+	\item \textbf{Identifiants \gls{wifi} codés en dur} dans le firmware ESP32-CAM
+	      (section~\ref{sec:elec_esp32cam}) --- contrainte opérationnelle et risque de sécurité
+	      mineur en cas de partage du dépôt public (Livrable~3, GitHub).
+	\item \textbf{Broche HC-SR04 partagée déclenchement/écho} (section~\ref{sec:elec_topology})
+	      --- configuration non standard pour ce capteur, à valider électriquement avant
+	      réactivation du chemin radar.
+\end{itemize}
+
+\section{Risques de performance et de charge de calcul}
+\label{sec:lim_perf}
+
+L'exécution simultanée de \texttt{slam\_toolbox} (solveur Ceres), de la pile Nav2 complète
+(costmaps, \gls{bt} navigator, \gls{dwb}) et du pilote Kinect sur un unique
+Raspberry\,Pi\,4 représenterait une charge de calcul substantielle pour un \gls{sbc} de
+cette gamme. La topologie en trois couches (figure~\ref{fig:global_archi}), qui déporte le
+traitement haut-niveau sur un PC opérateur distinct relié par le réseau \ros{}\,2,
+constitue une réponse pertinente à ce risque --- à condition que la latence et la bande
+passante du réseau \gls{wifi} local restent compatibles avec le débit du flux de
+profondeur Kinect et la fréquence de publication \topic{/scan} requise par
+\texttt{slam\_toolbox}, ce qui n'a pas pu être quantifié dans le cadre de cette analyse
+statique du code.
+
+\section{Synthèse}
+\label{sec:lim_synthese}
+
+Aucune des limitations identifiées dans ce chapitre ne constitue un défaut bloquant de
+conception~: il s'agit, pour l'essentiel, de points de finition (cohérence de paramètres),
+de fonctionnalités non encore implémentées (vision, supervision batterie) ou de marges de
+sécurité à renforcer (téléopération, réseau \gls{wifi}). Le chapitre~\ref{ch:bilan}
+reprend ces constats sous forme de plan d'action priorisé.

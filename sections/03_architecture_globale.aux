@@ -1,0 +1,65 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}Architecture Globale du Système}{4}{chapter.3}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{ch:archi_globale}{{3}{4}{Architecture Globale du Système}{chapter.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}Vue d'ensemble --- architecture telle que construite}{4}{section.3.1}\protected@file@percent }
+\newlabel{sec:archi_overview}{{3.1}{4}{Vue d'ensemble --- architecture telle que construite}{section.3.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.1}{\ignorespaces Architecture globale d'\textbf  {EsiBot}{} telle que construite (document fourni par l'équipe). Le capteur de cartographie principal est le Kinect (RGB-D) et non le radar ultrasonique du cahier des charges ; les moteurs sont pilotés directement par le Raspberry\,Pi\,4 et non par l'ESP32-CAM.}}{4}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:global_archi}{{3.1}{4}{Architecture globale d'\esibot {} telle que construite (document fourni par l'équipe). Le capteur de cartographie principal est le Kinect (RGB-D) et non le radar ultrasonique du cahier des charges ; les moteurs sont pilotés directement par le Raspberry\,Pi\,4 et non par l'ESP32-CAM}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Découpage en trois couches}{5}{section.3.2}\protected@file@percent }
+\newlabel{sec:archi_layers}{{3.2}{5}{Découpage en trois couches}{section.3.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Couche 1 --- Capteurs (Sensor Layer).}{5}{section.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Couche 2 --- Traitement bas-niveau (Raspberry\,Pi\,4).}{5}{section.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Couche 3 --- Traitement haut-niveau (PC opérateur).}{5}{section.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Couche transverse --- Alimentation.}{5}{section.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Diagramme des nœuds et topics ROS\,2{}\,2 réellement implémentés}{5}{section.3.3}\protected@file@percent }
+\newlabel{sec:archi_nodes}{{3.3}{5}{Diagramme des nœuds et topics \ros {}\,2 réellement implémentés}{section.3.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.2}{\ignorespaces Graphe simplifié des nœuds et topics ROS\,2{}\,2 réellement implémentés (reconstruit à partir du code source). Couleurs~: vert = pilotes capteurs/actionneurs, gris-bleu = estimation d'état, bleu = planification/cartographie haut-niveau.}}{5}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:ros_graph}{{3.2}{5}{Graphe simplifié des nœuds et topics \ros {}\,2 réellement implémentés (reconstruit à partir du code source). Couleurs~: vert = pilotes capteurs/actionneurs, gris-bleu = estimation d'état, bleu = planification/cartographie haut-niveau}{figure.caption.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3.3}{\ignorespaces Diagramme de flux ROS\,2{}\,2 \emph  {initialement prévu} par le cahier des charges (nœuds \texttt  {esibot\_driver}, \texttt  {radar\_node}, \texttt  {esircam\_node}, \texttt  {vision\_node}, \texttt  {web\_bridge} via \texttt  {rosbridge\_suite}). Conservé ici à titre de comparaison avec la figure~\ref {fig:ros_graph} ; plusieurs de ces nœuds n'ont pas d'équivalent direct dans le code livré (voir chapitre~\ref {ch:limitations}).}}{6}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:topics_stream_spec}{{3.3}{6}{Diagramme de flux \ros {}\,2 \emph {initialement prévu} par le cahier des charges (nœuds \texttt {esibot\_driver}, \texttt {radar\_node}, \texttt {esircam\_node}, \texttt {vision\_node}, \texttt {web\_bridge} via \texttt {rosbridge\_suite}). Conservé ici à titre de comparaison avec la figure~\ref {fig:ros_graph} ; plusieurs de ces nœuds n'ont pas d'équivalent direct dans le code livré (voir chapitre~\ref {ch:limitations})}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Synthèse des topics principaux}{6}{section.3.4}\protected@file@percent }
+\newlabel{sec:archi_topics_table}{{3.4}{6}{Synthèse des topics principaux}{section.3.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces Topics ROS\,2{}\,2 principaux --- architecture telle que construite.}}{6}{table.caption.7}\protected@file@percent }
+\newlabel{tab:topics_summary}{{3.1}{6}{Topics \ros {}\,2 principaux --- architecture telle que construite}{table.caption.7}{}}
+\@setckpt{sections/03_architecture_globale}{
+\setcounter{page}{7}
+\setcounter{equation}{0}
+\setcounter{enumi}{4}
+\setcounter{enumii}{0}
+\setcounter{enumiii}{0}
+\setcounter{enumiv}{0}
+\setcounter{footnote}{0}
+\setcounter{mpfootnote}{0}
+\setcounter{part}{0}
+\setcounter{chapter}{3}
+\setcounter{section}{4}
+\setcounter{subsection}{0}
+\setcounter{subsubsection}{0}
+\setcounter{paragraph}{0}
+\setcounter{subparagraph}{0}
+\setcounter{figure}{3}
+\setcounter{table}{1}
+\setcounter{section@level}{0}
+\setcounter{Item}{4}
+\setcounter{Hfootnote}{0}
+\setcounter{bookmark@seq@number}{16}
+\setcounter{LT@tables}{0}
+\setcounter{LT@chunks}{0}
+\setcounter{caption@flags}{2}
+\setcounter{continuedfloat}{0}
+\setcounter{subfigure}{0}
+\setcounter{subtable}{0}
+\setcounter{lstnumber}{1}
+\setcounter{tcbbreakpart}{1}
+\setcounter{tcblayer}{0}
+\setcounter{tcolorbox@number}{4}
+\setcounter{parentequation}{0}
+\setcounter{float@type}{16}
+\setcounter{lofdepth}{1}
+\setcounter{lotdepth}{1}
+\setcounter{su@anzahl}{0}
+\setcounter{lstlisting}{0}
+}

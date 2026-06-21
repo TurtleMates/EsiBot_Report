@@ -1,0 +1,168 @@
+\chapter{Conception Mécanique et Électronique}
+\label{ch:mecanique}
+
+\section{Architecture différentielle}
+\label{sec:meca_diff}
+
+\esibot{} adopte une architecture \emph{differential drive}~: deux roues motrices
+indépendantes plus une roue folle assurant la stabilité statique, la direction résultant
+uniquement de la différence de vitesse entre les deux roues. Les fichiers \gls{cad}/STL du
+châssis constituent un livrable séparé (Livrable~1) non inclus dans le code analysé~; ce
+chapitre s'appuie donc sur le modèle \gls{urdf} (\texttt{esibot\_description}), source de
+vérité utilisée par \ros{}\,2 pour les transformées et les costmaps, complété par les
+constantes électroniques relevées dans le code de commande.
+
+\section{Modèle géométrique (extrait du \gls{urdf})}
+\label{sec:meca_urdf}
+
+\begin{table}[H]
+	\centering
+	\caption{Paramètres géométriques et inertiels déclarés dans le modèle \gls{urdf}.}
+	\label{tab:urdf_geom}
+	\begin{tabularx}{\linewidth}{L{5cm} C{3.2cm} L{5cm}}
+		\toprule
+		\textbf{Élément} & \textbf{Valeur} & \textbf{Remarque} \\
+		\midrule
+		Châssis (\texttt{base\_link}) & 0.21 $\times$ 0.14 $\times$ 0.03\,m & masse 2.0\,kg \\
+		Rayon de roue (\texttt{wheel\_radius}) & 0.025\,m & largeur 0.027\,m, masse 0.2\,kg/roue \\
+		Empattement (\texttt{wheel\_y} $\times 2$) & 0.14\,m & distance latérale entre roues \\
+		Module caméra (\texttt{camera\_link}) & 0.073 $\times$ 0.278 $\times$ 0.073\,m & masse 0.56\,kg, $x=-0.105$\,m (arrière) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Le modèle déclare les repères optiques caméra (\texttt{camera\_depth\_frame},
+\texttt{camera\_rgb\_optical\_frame}, rotation $-\pi/2$) ; un
+\texttt{static\_transform\_publisher} relie \texttt{camera\_depth\_frame} au repère natif
+du pilote Kinect \texttt{kinect\_depth} par une transformée identité.
+
+\begin{warnbox}
+	Incohérence relevée entre l'\gls{urdf} (\texttt{wheel\_radius=0.025}\,m, empattement
+	0.14\,m) et le code bas-niveau~: \texttt{motor\_bridge\_node} utilise un
+	\texttt{wheel\_base} par défaut de \textbf{0.16}\,m, et \texttt{pwm\_mapper.py} /
+	\texttt{motor\_calibrator.py} un rayon de roue de \textbf{0.033}\,m (écart
+	$\approx$30\,\%), avec impact direct sur la précision d'odométrie
+	(chapitre~\ref{ch:limitations}).
+\end{warnbox}
+
+\section{Cinématique différentielle et odométrie}
+\label{sec:meca_kinematics}
+
+La conversion \topic{/cmd\_vel} $\to$ vitesses de roue, implémentée dans
+\texttt{motor\_bridge\_node.py} (\texttt{twist\_to\_wheel\_\allowbreak commands}) et répliquée dans le
+tableau de bord (\texttt{imu\_web\_dashboard.py}), suit le modèle classique~:
+
+\begin{equation}
+	v_{\text{g}} = v - \omega \cdot \tfrac{L}{2}, \quad
+	v_{\text{d}} = v + \omega \cdot \tfrac{L}{2}
+	\label{eq:diff_drive}
+\end{equation}
+
+et inversement pour la reconstruction d'odométrie~:
+$v = (v_{\text{g}}+v_{\text{d}})/2$, $\omega = (v_{\text{d}}-v_{\text{g}})/L$
+(équation~\ref{eq:diff_drive_inverse}), où $L$ est l'empattement.
+\begin{equation}
+	v = \frac{v_{\text{g}} + v_{\text{d}}}{2}, \qquad
+	\omega = \frac{v_{\text{d}} - v_{\text{g}}}{L}
+	\label{eq:diff_drive_inverse}
+\end{equation}
+
+\begin{figure}[H]
+	\centering
+	\resizebox{0.58\linewidth}{!}{%
+		\begin{tikzpicture}[
+				wheel/.style={draw, fill=EsiDark, minimum width=0.4cm, minimum height=1.2cm},
+				body/.style={draw, rounded corners=4pt, fill=EsiGray, minimum width=4cm, minimum height=2.6cm},
+				arr/.style={-Stealth, thick, EsiRed}
+			]
+			\node[body] (base) at (0,0) {};
+			\node[wheel] (lw) at (-2.2,0.9) {};
+			\node[wheel] (rw) at (-2.2,-0.9) {};
+			\node[draw, circle, fill=EsiAccent, minimum size=0.35cm] (caster) at (1.9,0) {};
+			\node[font=\scriptsize] at (1.9,-0.5) {roue folle};
+			\draw[<->, thick] (-2.2,1.6) -- node[above, font=\scriptsize]{$L$} (-2.2,-1.6);
+			\draw[arr] (0,0) -- ++(1.4,0) node[right, font=\scriptsize]{$v$};
+			\draw[arr] (0,0) arc[start angle=90, end angle=40, radius=0.5] node[above right, font=\scriptsize]{$\omega$};
+		\end{tikzpicture}
+	}
+	\caption{Modèle cinématique du robot différentiel \esibot{} (vue de dessus).}
+	\label{fig:diff_drive_diagram}
+\end{figure}
+
+Chaque roue est équipée d'un encodeur compté par interruption \gls{gpio}, anti-rebond
+logiciel 2\,ms. Le paramètre \texttt{encoder\_cpr} (12 par défaut) est doublé par comptage
+sur les deux fronts (\texttt{encoder\_count\_both\_\allowbreak edges=True}), donnant
+\textbf{24 impulsions/tour}. La vitesse de rotation mesurée est calculée à chaque cycle de
+contrôle (\texttt{control\_hz}, 10\,Hz par défaut) par~:
+\begin{equation}
+	\text{RPM}_{\text{mesuré}} = \frac{N_{\text{impulsions}}}{\text{CPR}_{\text{effectif}}} \times \frac{60}{\Delta t}
+	\label{eq:rpm_measure}
+\end{equation}
+soit $360°/24=15°$ par impulsion et, avec le rayon de 0.033\,m du calibrateur,
+$\approx$\textbf{8.6\,mm}/impulsion ($2\pi\times0.033/24$).
+
+\section{Câblage électronique}
+\label{ch:electronique}
+\label{sec:elec_topology}
+
+Le cahier des charges (Livrable~2) exige un schéma Fritzing/KiCad, absent de l'archive
+fournie~; le tableau~\ref{tab:gpio_pinout} a donc été \textbf{reconstruit par
+rétro-ingénierie} depuis les constantes \gls{gpio} du code Python. À la différence du
+cahier des charges, qui prévoyait que l'ESP32-CAM pilote le pont en H, le servo et le
+HC-SR04, l'implémentation réelle concentre toute l'électronique temps-réel sur les broches
+\gls{gpio} du Raspberry\,Pi\,4.
+
+\begin{table}[H]
+	\centering
+	\caption{Broches \gls{gpio} du Raspberry\,Pi\,4 (BCM), reconstruites depuis le code source.}
+	\label{tab:gpio_pinout}
+	\begin{tabularx}{\linewidth}{L{3.8cm} C{1.6cm} L{6.8cm}}
+		\toprule
+		\textbf{Fonction} & \textbf{GPIO} & \textbf{Source / nœud} \\
+		\midrule
+		ENA / IN1 / IN2 (moteur g.) & 13 / 20 / 21 & \texttt{motor\_bridge\_node} \\
+		Encodeur gauche & 26 & \texttt{motor\_bridge\_node} (\texttt{pin\_left\_encoder}) \\
+		ENB / IN3 / IN4 (moteur d.) & 12 / 5 / 6 & \texttt{motor\_bridge\_node} \\
+		Encodeur droit & 27 & \texttt{motor\_bridge\_node} (\texttt{pin\_right\_encoder}) \\
+		\gls{i2c} SDA/SCL (bus 1) & 2 / 3 & \texttt{mpu6050\_node} (MPU6050 @ 0x68) \\
+		HC-SR04 SIG (trig/écho) & 23 & \texttt{ultrasonic\_scan\_node} (déprécié) \\
+		Servo SG90 radar & 18 & \texttt{ultrasonic\_scan\_node} (déprécié) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\textit{Incohérence GPIO~:} \texttt{motor\_bridge\_node.py} lit l'encodeur gauche sur le
+\gls{gpio}~26, tandis que \texttt{motor\_calibrator.py} utilise le \gls{gpio}~17 pour le
+même encodeur --- si le câblage physique n'a pas été harmonisé entre les deux usages, les
+coefficients de calibration PWM$\to$RPM seraient invalides en production (voir
+chapitre~\ref{ch:limitations}).
+
+Le pilotage moteur utilise un double pont en H \textbf{L298N} en PWM logiciel
+(\texttt{RPi.GPIO}, 500\,Hz), rapport cyclique borné à $[15\,\%,100\,\%]$
+(\texttt{min/max\_duty\_cycle}) pour compenser la zone morte mécanique. Le MPU6050
+(\gls{i2c} bus~1, adresse \texttt{0x68}) est configuré au démarrage (réveil, diviseur
+d'échantillonnage \texttt{SMPLRT\_DIV=0x07}, filtre passe-bas \texttt{DLPF\_CFG=0x03},
+$\pm2g$/$\pm250°$/s) et publie à \textbf{50\,Hz}. Le Kinect (v1, ère Xbox\,360), capteur de
+cartographie principal, est relié en \textbf{USB} (non \gls{gpio}) et piloté par le paquet
+communautaire \texttt{kinect\_ros2} (\texttt{libfreenect}).
+
+\section{ESP32-CAM --- caméra de streaming uniquement}
+\label{sec:elec_esp32cam}
+
+Le module ESP32-CAM (\texttt{AI\_THINKER}) sert exclusivement de serveur vidéo \gls{mjpeg}
+\gls{wifi}~: le firmware \texttt{CameraServerArduinoIDE.ino} initialise le capteur OV2640
+(\texttt{UXGA} si PSRAM, sinon \texttt{SVGA}) et expose le flux sur \texttt{/stream}.
+Aucune broche \gls{gpio} de l'ESP32-CAM ne pilote d'actionneur --- l'essentiel de ses
+broches étant réservé à l'interface caméra parallèle --- une contrainte matérielle
+probablement à l'origine du report de la commande moteur vers le Raspberry\,Pi\,4. Les
+identifiants \gls{wifi} (SSID/mot de passe) sont \textbf{codés en dur} dans le firmware,
+sans portail captif ni provisioning (chapitre~\ref{ch:limitations}).
+
+\section{Alimentation}
+\label{sec:elec_power}
+
+Le schéma d'architecture (figure~\ref{fig:global_archi}) identifie un bloc « Power
+Management » alimentant séparément la couche actionneurs (L298N) et la couche de calcul
+(Raspberry\,Pi\,4, ESP32-CAM). Aucun nœud de supervision de batterie
+(\topic{/battery\_state}, prévu au cahier des charges) n'a été retrouvé dans le code~: la
+télémétrie de batterie n'est, à ce stade, pas exposée par le logiciel embarqué.

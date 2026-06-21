@@ -1,0 +1,100 @@
+\chapter{Présentation du Projet et Cahier des Charges}
+\label{ch:presentation}
+
+\section{Concept général}
+\label{sec:presentation_concept}
+
+\esibot{} est un robot mobile autonome à entraînement différentiel (\emph{differential
+drive}) : deux roues motrices indépendantes plus une roue folle assurent à la fois la
+propulsion et le pilotage, sans mécanisme de direction dédié. La fiche de projet officielle
+résume le concept clé ainsi~:
+
+\begin{conceptbox}{Concept clé du cahier des charges}
+	\esibot{} = TurtleBot3 Burger adapté aux ressources de l'ESI. Même architecture
+	\ros{}\,2, mêmes paquets (\pkg{slam\_toolbox}, \pkg{Nav2}), mêmes topics --- seuls les
+	composants physiques changent~: un ESP32-CAM à la place de l'OpenCR, et un radar
+	ultrasonique rotatif (HC-SR04~+~servo) à la place du LiDAR laser.
+\end{conceptbox}
+
+Chaque groupe devait réaliser son propre exemplaire d'\esibot{} de façon indépendante sur
+une durée de 10 semaines, la comparaison inter-groupes (qualité de cartographie, précision
+de navigation, robustesse de détection d'obstacles) constituant la dimension compétitive et
+pédagogique de l'exercice.
+
+\section{Comparatif avec le TurtleBot3 Burger (cahier des charges)}
+\label{sec:presentation_comparatif}
+
+Le tableau~\ref{tab:tb3_compare_spec} reproduit le comparatif fourni dans la spécification
+du projet entre la plate-forme de référence et la version \emph{prévue} d'\esibot{}. Le
+chapitre~\ref{ch:archi_globale} présente ensuite l'architecture \emph{réellement
+implémentée}, qui diverge de ce tableau sur plusieurs points (notamment le capteur de
+cartographie et le contrôleur moteur), analysés en détail au chapitre~\ref{ch:limitations}.
+
+\begin{table}[H]
+	\centering
+	\caption{Comparatif TurtleBot3 Burger / EsiBot --- tel que spécifié dans le cahier des charges.}
+	\label{tab:tb3_compare_spec}
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabularx}{\linewidth}{L{3.4cm} L{4.4cm} L{4.8cm}}
+		\toprule
+		\textbf{Caractéristique} & \textbf{TurtleBot3 Burger}        & \textbf{EsiBot (prévu)}                        \\
+		\midrule
+		Roues motrices            & 2$\times$ Dynamixel XL430 (servos) & 2$\times$ moteurs DC jaunes + encodeurs        \\
+		Roue folle                & 1 ball caster                      & 1 roue folle imprimée 3D                       \\
+		Microcontrôleur           & OpenCR 1.0 (Cortex-M7)             & ESP32-CAM (\gls{wifi} intégré + caméra)        \\
+		Ordinateur embarqué       & Raspberry Pi 3B+ / 4               & Raspberry\,Pi\,4 (2 ou 4\,Go)                  \\
+		Capteur de distance       & LiDAR 360° laser (HLS-LFCD2)        & 1$\times$ HC-SR04 sur servo SG90 (radar rotatif) \\
+		Angle de balayage         & 360°                                & 180° (servo) ou 360° (rotation continue)        \\
+		Caméra                    & Option (Raspberry Pi Cam)          & ESP32-CAM OV2640 intégrée (streaming \gls{wifi}) \\
+		Châssis                   & Pièces ABS moulées ROBOTIS          & Impression 3D PLA conçue par les étudiants     \\
+		Framework                 & \ros{} Humble / Iron                & \ros{} Humble (identique)                       \\
+		\gls{slam}                & slam\_toolbox / cartographer        & slam\_toolbox (identique)                       \\
+		Navigation autonome       & Nav2                                & Nav2 (identique)                                \\
+		Open-source matériel      & Oui (STL fournis par ROBOTIS)       & Oui (STL conçus par les étudiants)              \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+L'analogie centrale revendiquée par le cahier des charges est que le radar rotatif
+(servo~+~HC-SR04), bien que mécaniquement très différent d'un LiDAR, produit en sortie un
+message \texttt{sensor\_msgs/LaserScan} au format strictement identique à celui d'un
+LiDAR~: les paquets standards \pkg{slam\_toolbox} et \pkg{Nav2} le consomment donc sans
+aucune modification de code. Cette même propriété d'interchangeabilité de capteur est
+réutilisée, dans l'implémentation réelle, avec le capteur de profondeur Kinect (voir
+chapitre~\ref{ch:slam}).
+
+\section{Liste des livrables du projet}
+\label{sec:presentation_livrables}
+
+Le projet définit huit livrables, rappelés au tableau~\ref{tab:livrables}. Ce document est
+le \textbf{Livrable n°6}.
+
+\begin{table}[H]
+	\centering
+	\caption{Livrables attendus par groupe (extrait du cahier des charges).}
+	\label{tab:livrables}
+	\begin{tabularx}{\linewidth}{C{0.8cm} L{4cm} L{2.6cm} L{5.5cm}}
+		\toprule
+		\textbf{\#} & \textbf{Livrable} & \textbf{Format} & \textbf{Contenu minimum} \\
+		\midrule
+		1 & Fichiers \gls{cad} + STL & FreeCAD / STL & Châssis complet : 2 plateaux, entretoises, tourelle servo, roue folle \\
+		2 & Schéma électronique & PDF (Fritzing/KiCad) & Câblage ESP32 + L298N + servo + HC-SR04 + RPi4 + alimentation \\
+		3 & Workspace \ros{}\,2 & GitHub & Paquets \texttt{esibot\_*} avec launch files, \gls{urdf}, paramètres YAML \\
+		4 & Carte \gls{slam} & \texttt{.pgm} + \texttt{.yaml} & Carte d'une zone test de minimum 3\,m $\times$ 3\,m \\
+		\rowcolor{EsiGray} 5 & Tableau de bord web & HTML/JS & Carte + vidéo + commandes + angle servo + état batterie \\
+		\rowcolor{EsiGray} \textbf{6} & \textbf{Rapport technique} & \textbf{PDF (15--25 p.)} & \textbf{Architecture, schémas, résultats mesurés, analyse limitations, bilan (\emph{ce document})} \\
+		7 & Vidéo de démonstration & MP4 (3--5 min) & Démarrage $\rightarrow$ cartographie $\rightarrow$ navigation $\rightarrow$ dashboard \\
+		8 & README & Markdown & Installation, lancement, dépendances, architecture \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\section{Scénario de démonstration imposé}
+\label{sec:presentation_scenario}
+
+Le jury place \esibot{} dans une pièce inconnue. L'équipe lance le robot avec une seule
+commande. La phase~1 (2~min) consiste en une télé-opération pour construire la carte, qui
+apparaît en direct sur le tableau de bord. En phase~2, le jury désigne deux points sur la
+carte~; le robot doit alors naviguer seul jusqu'à chaque point en évitant les obstacles, un
+obstacle surprise pouvant être ajouté en cours de navigation à titre de bonus. Ce scénario
+structure directement le plan de tests du chapitre~\ref{ch:resultats}.

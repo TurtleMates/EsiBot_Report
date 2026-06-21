@@ -1,0 +1,136 @@
+\chapter{Interface Utilisateur et Mise en Œuvre}
+\label{ch:ihm}
+
+\section{Téléopération par manette Xbox}
+\label{sec:ihm_teleop}
+
+La téléopération repose sur une manette sans fil (compatible Xbox), pilotée par
+\texttt{joy\_node}/\texttt{teleop\_twist\_joy} (\texttt{joystick\_drive.launch.py}), et non
+le \texttt{teleop\_twist\_keyboard} suggéré au cahier des charges.
+
+\begin{table}[H]
+	\centering
+	\caption{Configuration de la téléopération manette (\texttt{xbox\_teleop.yaml}).}
+	\label{tab:teleop_params}
+	\begin{tabularx}{\linewidth}{L{5.5cm} C{2.6cm} L{4.3cm}}
+		\toprule
+		\textbf{Paramètre} & \textbf{Valeur} & \textbf{Remarque} \\
+		\midrule
+		\texttt{require\_enable\_button} & \texttt{false} & aucune touche « homme-mort » requise \\
+		Axe linéaire / angulaire & axe 1 (éch. 0.25) / axe 3 (éch. 2.4) & sticks $\to$ \topic{/cmd\_vel} \\
+		Zone morte / répétition & 0.08 / 20\,Hz & \texttt{joy\_node} \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+L'absence de bouton d'activation obligatoire signifie que toute déviation accidentelle des
+manches se traduit immédiatement par un mouvement, sans touche à maintenir --- une marge de
+sécurité réduite par rapport à un dispositif « homme-mort » classique
+(chapitre~\ref{ch:limitations}). \texttt{joystick\_drive.launch.py} démarre conjointement
+\texttt{joy\_node}, \texttt{teleop\_twist\_joy\_node} et \texttt{motor\_bridge\_node}
+(vitesse angulaire max. relevée à 3.0\,rad/s, rapport cyclique minimal 22\,\%).
+
+\section{Fusion \gls{ekf} --- détail de configuration}
+\label{sec:ihm_ekf_detail}
+
+\texttt{ekf\_odom\_imu.yaml} (\texttt{ekf\_fusion.launch.py}) configure
+\texttt{ekf\_filter\_node} à \textbf{30\,Hz}, \texttt{two\_d\_mode}~: de l'odométrie
+(\topic{/odom}), seules les \emph{vitesses} $(v_x,v_y,\dot\theta)$ sont fusionnées (la
+position absolue n'est pas injectée, évitant un double comptage de dérive) ; de l'\gls{imu}
+(\topic{/imu/data\_raw}), l'orientation de lacet absolue, $\dot\theta$ et l'accélération
+longitudinale $a_x$ sont retenues. Le \texttt{world\_frame} reste \texttt{odom}, laissant
+la correction \topic{map}$\to$\topic{odom} à \texttt{slam\_toolbox}/\gls{amcl} --- une
+séparation propre entre estimation locale (\gls{ekf}) et globale (\gls{slam}/\gls{amcl}).
+
+\section{Tableau de bord web de télémétrie}
+\label{sec:ihm_dashboard}
+
+Le nœud \texttt{imu\_web\_dashboard} (\texttt{esibot\_dashboard}) expose un serveur HTTP
+autonome (\texttt{http.server}, sans dépendance externe), diffusant une page HTML/JS à page
+unique, sensiblement différente du tableau de bord du cahier des charges (qui prévoyait une
+passerelle WebSocket \texttt{rosbridge\_suite} avec carte, vidéo et boutons de
+téléopération) --- l'implémentation réelle se concentre sur la \textbf{télémétrie}.
+
+\begin{table}[H]
+	\centering
+	\caption{Widgets du tableau de bord \texttt{imu\_web\_dashboard}.}
+	\label{tab:dashboard_widgets}
+	\begin{tabularx}{\linewidth}{L{3.2cm} L{8.7cm}}
+		\toprule
+		\textbf{Widget} & \textbf{Contenu} \\
+		\midrule
+		Orientation & roulis/tangage (intégration accéléromètre), horizon artificiel \texttt{<canvas>}, mise à zéro (\texttt{POST /api/zero}) \\
+		Odométrie & position/cap/vitesses (\topic{/odometry/filtered}), trajectoire (1200 pts) \\
+		Manette \& commande & axes/boutons \topic{/joy} et conversion \topic{/cmd\_vel} $\to$ vitesses de roue (équation~\ref{eq:diff_drive}) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+L'interface interroge en boucle \texttt{GET /api/imu} (état JSON consolidé, protégé par
+verrou pour la cohérence entre thread \ros{}\,2 et thread HTTP). Le tableau de bord
+\textbf{n'affiche ni la carte \gls{slam} ni le flux vidéo}, deux fonctionnalités du
+Livrable~5 (chapitre~\ref{ch:limitations}).
+
+\section{Flux vidéo ESP32-CAM}
+\label{sec:ihm_camera}
+
+Le pont \texttt{esp32\_camera\_bridge} (\texttt{mjpeg\_image\_publisher}) se connecte en
+client HTTP au flux \gls{mjpeg} de l'ESP32-CAM, extrait chaque trame JPEG
+(marqueurs \texttt{0xFFD8}/\texttt{0xFFD9}), la décode avec OpenCV et republie sur
+\topic{/esp32/camera/image\_raw} via \texttt{cv\_bridge}, avec reconnexion automatique
+(2\,s). Ce flux est consommable mais non consommé par un nœud de vision dédié --- aucun
+\texttt{vision\_node} (détection ligne/obstacles, prévu au cahier des charges) n'a été
+retrouvé dans le code livré.
+
+\section{Mise en Œuvre et Procédures d'Exploitation}
+\label{ch:exploitation}
+
+Le dépôt fournit trois scripts shell (\texttt{scripts/}) qui illustrent la séparation
+bas-niveau/haut-niveau, contrairement au test T1 du cahier des charges qui suppose un
+unique \texttt{esibot\_full.launch.py}.
+
+\begin{table}[H]
+	\centering
+	\caption{Scripts de démarrage disponibles dans \texttt{scripts/}.}
+	\label{tab:startup_scripts}
+	\begin{tabularx}{\linewidth}{L{3.6cm} L{4.6cm} L{4.6cm}}
+		\toprule
+		\textbf{Script} & \textbf{Rôle} & \textbf{Particularité} \\
+		\midrule
+		\texttt{start\_esibot.sh} & lancement manuel du calibrateur & script de développement minimal \\
+		\texttt{start\_esibot\_all.sh} & démarrage production (téléop, \gls{imu}, \gls{ekf}, dashboard) & exige une calibration valide ; radar désactivé \\
+		\texttt{start\_esibot\_all\_no\_\allowbreak calib.sh} & variante sans vérification & active le radar ultrasonique au lieu du Kinect \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\begin{notebox}[title={Aucun script ne démarre le pipeline Kinect/\gls{slam}}]
+	Les trois scripts se limitent à la couche « commande bas-niveau + télémétrie »
+	(chapitre~\ref{ch:commande_bas_niveau}). Le pipeline de cartographie
+	(\texttt{mapping.launch.py}) et Nav2 (\texttt{navigation2.launch.py}) doivent être
+	démarrés \emph{séparément}, typiquement depuis le PC opérateur (couche haut-niveau,
+	figure~\ref{fig:global_archi}) --- reflet direct du découpage en trois couches
+	(chapitre~\ref{ch:archi_globale}).
+\end{notebox}
+
+Avant tout démarrage via \texttt{start\_esibot\_all.sh}, le script vérifie la validité
+d'un fichier de calibration JSON (\texttt{\textasciitilde/.esibot/pwm\_rpm\_map.json},
+généré par \texttt{motor\_calibrator}, section~\ref{sec:cbn_calibrator}), avec coefficients
+positifs exigés pour les 4 combinaisons \{gauche,droite\}$\times$\{avant,arrière\} --- un
+garde-fou bloquant le démarrage en cas de calibration absente ou invalide.
+
+\begin{lstlisting}[style=BashStyle, caption={Séquence complète --- démarrage bas-niveau, puis cartographie et navigation.}, label={lst:slam_nav_sequence}]
+./scripts/start_esibot_all.sh        # teleop + IMU + EKF + dashboard (RPi4)
+
+ros2 launch esibot_slam mapping.launch.py start_rviz:=true        # cartographie
+ros2 run nav2_map_server map_saver_cli -f ~/esibot_ws/maps/salle_test
+ros2 launch esibot_navigation2 navigation2.launch.py \
+    map:=$HOME/esibot_ws/maps/salle_test.yaml use_rviz:=true      # navigation
+\end{lstlisting}
+
+Le workspace (\texttt{\textasciitilde/esibot\_ws}) regroupe les huit paquets
+\texttt{esibot\_*} et les dépendances tierces \texttt{kinect\_ros2} /
+\texttt{esp32\_camera\_bridge}, en complément des paquets standards \ros{}\,2 Humble
+(\texttt{slam\_toolbox}, \texttt{nav2\_bringup}, \texttt{robot\_localization},
+\texttt{depthimage\_to\_laserscan}, \texttt{joy}, \texttt{teleop\_twist\_joy},
+\texttt{cv\_bridge}) --- procédure d'installation détaillée au Livrable~8 (README).

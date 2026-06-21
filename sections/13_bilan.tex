@@ -1,0 +1,83 @@
+\chapter{Bilan et Perspectives}
+\label{ch:bilan}
+
+\section{Bilan technique}
+\label{sec:bilan_technique}
+
+Le projet \esibot{} a abouti à un robot mobile différentiel fonctionnel, dont
+l'architecture --- bien que sensiblement réorganisée par rapport au cahier des charges
+initial --- reste fidèle à la philosophie de conception du TurtleBot3 Burger~: une pile
+logicielle \ros{}\,2 standard (\texttt{slam\_toolbox}, Nav2, \texttt{robot\_localization})
+pilotant un robot différentiel bas coût, avec un principe d'interchangeabilité de capteur
+de cartographie pleinement exploité (substitution réussie du radar ultrasonique par un
+Kinect, sans modification des paquets \gls{slam}/navigation). Les acquis techniques
+majeurs sont~:
+
+\begin{itemize}
+	\item une chaîne de commande bas-niveau complète et autonome (encodeurs, \gls{pid} par
+	      roue, calibration PWM$\to$RPM outillée) entièrement portée sur Raspberry\,Pi\,4 ;
+	\item une fusion de capteurs \gls{ekf} correctement scoper (vitesses uniquement pour
+	      l'odométrie, orientation absolue pour l'\gls{imu}), évitant le double comptage de
+	      dérive ;
+	\item un pipeline de cartographie Kinect $\to$ \texttt{depthimage\_to\_laserscan} $\to$
+	      \texttt{slam\_toolbox} cohérent et correctement paramétré (bornes de portée
+	      alignées, fermeture de boucle activée) ;
+	\item une configuration Nav2 complète (\gls{amcl}, costmaps double couche, \gls{dwb},
+	      comportements de récupération, moniteur de collision) ;
+	\item une téléopération manette et un tableau de bord web de télémétrie fonctionnels et
+	      simples à déployer (aucune dépendance externe pour le serveur HTTP).
+\end{itemize}
+
+\section{Plan d'action priorisé}
+\label{sec:bilan_plan}
+
+Sur la base de l'analyse du chapitre~\ref{ch:limitations}, les actions correctives
+suivantes sont proposées par ordre de priorité décroissante~:
+
+\begin{enumerate}
+	\item \textbf{Réconcilier les constantes géométriques} (rayon de roue, empattement,
+	      affectations \gls{gpio}) entre l'\gls{urdf}, \texttt{motor\_bridge\_node} et
+	      \texttt{motor\_calibrator}, idéalement via un fichier de paramètres unique partagé.
+	\item \textbf{Conduire la campagne de mesures de terrain} décrite au
+	      chapitre~\ref{ch:resultats} (tableaux~\ref{tab:test_plan}
+	      et~\ref{tab:metrics_consolidated}), en particulier la cartographie réelle d'une zone
+	      de 3\,m$\times$3\,m avec le Kinect, suivie de la validation de la navigation
+	      autonome sur cette carte --- la priorité la plus urgente avant la soutenance, le
+	      scénario de démonstration du jury (section~\ref{sec:presentation_scenario}) en
+	      dépendant directement.
+	\item \textbf{Implémenter la supervision de batterie} (\topic{/battery\_state}) pour
+	      sécuriser les essais et les démonstrations.
+	\item \textbf{Ajouter un nœud de vision minimal} (détection de ligne ou de couleur par
+	      OpenCV) consommant \topic{/esp32/camera/image\_raw}, ne serait-ce qu'à titre
+	      démonstratif, pour combler l'écart du Livrable~3/cahier des charges.
+	\item \textbf{Étendre le tableau de bord web} pour y intégrer, au minimum, un affichage
+	      de la carte \gls{slam} (rendu canvas de l'\texttt{OccupancyGrid}) et un aperçu basse
+	      fréquence du flux caméra, rapprochant le Livrable~5 de sa spécification complète.
+	\item \textbf{Réintroduire un bouton d'activation} en téléopération manette, ou à défaut
+	      documenter explicitement ce choix de conception dans le README (Livrable~8).
+\end{enumerate}
+
+\section{Perspectives d'évolution}
+\label{sec:bilan_perspectives}
+
+Au-delà des corrections immédiates, plusieurs axes d'évolution pourraient enrichir
+\esibot{} dans la suite du projet ou pour de futures promotions~: l'exploitation conjointe
+du flux couleur du Kinect (actuellement seule la profondeur est utilisée) pour de la
+détection visuelle complémentaire au radar ultrasonique conservé en réserve ; le retour
+d'une fusion à trois capteurs (Kinect + radar ultrasonique + odométrie) pour une
+robustesse accrue en cas de défaillance ponctuelle d'une source ; l'ajout d'une
+supervision énergétique complète avec estimation d'autonomie restante ; et,
+plus largement, la consolidation de la documentation (README, schéma électronique formel)
+afin de fiabiliser la reproductibilité du projet par d'autres équipes, conformément à
+l'esprit open-source revendiqué dès le cahier des charges initial.
+
+\section{Mot de conclusion}
+\label{sec:bilan_conclusion}
+
+Ce rapport a documenté \esibot{} tel qu'il a été réellement conçu et codé, plutôt que tel
+qu'il avait été initialement envisagé sur le papier --- un choix méthodologique délibéré
+qui, espère l'équipe, constitue une base plus utile pour la suite du projet que la simple
+reproduction du cahier des charges initial. Les écarts identifiés ne sont pas des échecs
+mais des décisions d'ingénierie tracées et justifiables ; le plan d'action ci-dessus fixe
+le chemin vers une validation expérimentale complète du système avant la soutenance
+finale.
