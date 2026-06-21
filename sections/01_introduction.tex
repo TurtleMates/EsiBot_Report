@@ -4,60 +4,31 @@
 \section{Contexte}
 \label{sec:intro_contexte}
 
-Le projet \esibot{} s'inscrit dans le cadre d'un module intégrateur IoT / robotique
-mobile de l'École Nationale Supérieure d'Informatique (ESI Alger). L'objectif pédagogique
-est de concevoir, fabriquer et programmer, de A à Z, un robot mobile autonome capable de
-cartographier un environnement inconnu puis de s'y déplacer de façon autonome jusqu'à des
-points objectifs désignés par un opérateur. Le projet reprend explicitement
-l'architecture du \textbf{TurtleBot3 Burger} (ROBOTIS / Open Robotics), plate-forme de
-référence pour l'enseignement de \ros{}, en substituant ses composants matériels
-propriétaires (contrôleur OpenCR, LiDAR laser) par des composants accessibles aux
-étudiants : microcontrôleur \gls{wifi} \gls{mcu} ESP32-CAM, capteurs bas coût, impression
-3D pour le châssis.
+Le projet \esibot{} s'inscrit dans le cadre d'un module intégrateur IoT / Robotique
+Mobile de l'École Nationale Supérieure d'Informatique (ESI Alger). L'objectif de ce projet
+est de concevoir, fabriquer et programmer un robot mobile autonome capable de
+cartographier un environnement inconnu et de s'y déplacer vers des
+points objectifs définis. Ce projet s'inspire de l'architecture du \textbf{TurtleBot3 Burger},
+en substituant ses composants matériels propriétaires par des solutions accessibles et à bas coût~: 
+microcontrôleur \gls{mcu} ESP32-CAM, Raspberry Pi 4, capteur de profondeur Kinect, et impression 3D pour le châssis.
 
-\section{Objectifs}
+\section{Objectifs du Rapport}
 \label{sec:intro_objectifs}
 
-L'objectif est de documenter de façon précise et vérifiable l'architecture du système
-\emph{telle qu'elle a été effectivement implémentée} dans le code source fourni par
-l'équipe, plutôt que l'architecture théorique du cahier des charges initial. Cette
-distinction est essentielle : au cours du développement, plusieurs choix de conception
-ont évolué (voir chapitre~\ref{ch:archi_globale} et chapitre~\ref{ch:limitations}), en
-particulier le report de la commande moteur de l'ESP32-CAM vers le Raspberry\,Pi\,4, et le
-remplacement du radar ultrasonique rotatif par un capteur de profondeur Kinect comme
-source principale de cartographie.
+Ce document détaille l'architecture matérielle, logicielle et mécanique du système. Il met 
+en évidence les choix de conception finaux ayant abouti à la réalisation du robot, notamment
+l'intégration de la commande moteur sur le Raspberry\,Pi\,4 et l'utilisation du capteur Kinect 
+pour la cartographie.
 
-Conformément à la fiche de livrables du projet, ce rapport couvre~:
+Le rapport couvre~:
 \begin{itemize}
-	\item l'architecture complète (mécanique, électronique, logicielle) ;
-	\item les schémas de câblage et diagrammes de flux \ros{}\,2 ;
-	\item les résultats mesurés ou analytiquement dérivés des paramètres de configuration ;
-	\item une analyse critique des limitations et des écarts par rapport au cahier des
-	      charges ;
-	\item un bilan du projet et des perspectives d'amélioration.
+	\item L'architecture complète (composants mécaniques, électroniques, et logiciels) ;
+	\item L'interfaçage des capteurs et les flux de communication sous \ros{}\,2 ;
+	\item Les paramètres de configuration et la fusion sensorielle ;
+	\item L'évaluation des performances et les limitations du système.
 \end{itemize}
 
-\section{Méthodologie de rédaction}
-\label{sec:intro_methodo}
-
-L'intégralité du contenu technique de ce rapport (paramètres, broches \gls{gpio}, topics
-\ros{}\,2, formules de cinématique, configurations \gls{slam}/Nav2) a été extraite
-directement du code source du dépôt \texttt{Esi\_Bot} (paquets \texttt{esibot\_*}), du
-firmware ESP32-CAM, et de la fiche de spécification officielle du projet. Lorsqu'une
-valeur mesurée sur le terrain n'était pas disponible au moment de la rédaction (le code
-fourni étant explicitement signalé comme \emph{en évolution}), le tableau correspondant
-est conservé avec la mention \emph{« à compléter lors des essais »} plutôt que d'inventer
-une valeur, conformément à l'exigence de traçabilité scientifique du rapport.
-
-\section{Organisation du rapport}
+\section{Organisation du Rapport}
 \label{sec:intro_organisation}
 
-Le chapitre~\ref{ch:presentation} présente le cahier des charges du projet et le
-comparatif avec le TurtleBot3 Burger. Le chapitre~\ref{ch:archi_globale} détaille
-l'architecture globale telle que construite. Le chapitre~\ref{ch:mecanique} couvre la
-conception mécanique et électronique. Le chapitre~\ref{ch:commande_bas_niveau} documente
-la commande bas-niveau et la fusion de capteurs. Le chapitre~\ref{ch:slam} traite de la
-cartographie et de la navigation autonome. Le chapitre~\ref{ch:ihm} présente le tableau de
-bord, la téléopération, le flux vidéo et les procédures de mise en œuvre. Les résultats et
-tests d'intégration sont rassemblés au chapitre~\ref{ch:resultats}, suivis de l'analyse
-critique (chapitre~\ref{ch:limitations}) et du bilan final (chapitre~\ref{ch:bilan}).
+Le chapitre~\ref{ch:archi_globale} détaille l'architecture globale. Le chapitre~\ref{ch:mecanique} couvre la conception mécanique et électronique. Le chapitre~\ref{ch:commande_bas_niveau} documente la commande bas-niveau et la fusion de données. L'approche de cartographie et de navigation est traitée au chapitre~\ref{ch:slam}. Le chapitre~\ref{ch:ihm} présente l'interface utilisateur et les procédures de déploiement. Enfin, les résultats d'intégration, l'analyse des limitations et le bilan du projet font l'objet des trois derniers chapitres (\ref{ch:resultats}, \ref{ch:limitations}, \ref{ch:bilan}).

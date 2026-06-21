@@ -1,52 +1,26 @@
 \chapter{Architecture Globale du Système}
 \label{ch:archi_globale}
 
-\section{Vue d'ensemble --- architecture telle que construite}
+\section{Vue d'ensemble de l'architecture}
 \label{sec:archi_overview}
 
-Contrairement au cahier des charges initial (chapitre~\ref{ch:presentation}), l'analyse du
-code source du dépôt \texttt{Esi\_Bot} révèle une architecture matérielle sensiblement
-différente, organisée en trois couches de traitement et une couche d'alimentation
-dédiée. La figure~\ref{fig:global_archi} reproduit le schéma d'architecture officiel
-fourni par l'équipe, qui sert de référence pour ce chapitre.
+L'architecture matérielle du robot est organisée en trois couches de traitement et une couche d'alimentation
+dédiée. La figure~\ref{fig:global_archi} illustre le schéma d'architecture global.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.62\linewidth]{images/Global_Archi.png}
-	\caption{Architecture globale d'\esibot{} telle que construite (document fourni par
-		l'équipe). Le capteur de cartographie principal est le Kinect (RGB-D) et non le
-		radar ultrasonique du cahier des charges ; les moteurs sont pilotés directement
-		par le Raspberry\,Pi\,4 et non par l'ESP32-CAM.}
+	\caption{Architecture globale d'\esibot{}. Le capteur de cartographie principal est le Kinect (RGB-D) et les moteurs sont pilotés par le Raspberry\,Pi\,4.}
 	\label{fig:global_archi}
 \end{figure}
 
-Quatre observations structurantes ressortent de ce schéma et sont confirmées par le code
-source~:
+Les composants majeurs sont structurés de la façon suivante~:
 
 \begin{enumerate}
-	\item \textbf{L'ESP32-CAM est réduit à une fonction unique de caméra de streaming.}
-	      Le firmware \texttt{CameraServerArduinoIDE.ino} (variante du serveur de caméra
-	      ESP32 standard d'Espressif, modèle \texttt{AI\_THINKER}) ne pilote ni moteurs, ni
-	      servo, ni capteur de distance --- il expose uniquement un flux \gls{mjpeg} HTTP sur
-	      le réseau \gls{wifi} local.
-	\item \textbf{Le Raspberry\,Pi\,4 assure l'intégralité de l'interfaçage bas-niveau.} Le
-	      nœud \texttt{motor\_bridge\_node} (paquet \texttt{esibot\_hardware}) pilote
-	      directement le pont en H L298N et lit les encodeurs de roue via les broches
-	      \gls{gpio} du Raspberry\,Pi --- une responsabilité initialement prévue pour
-	      l'ESP32-CAM.
-	\item \textbf{Le capteur de cartographie principal est un Kinect (v1), pas le radar
-	      ultrasonique.} Le paquet \texttt{esibot\_slam} lance le pilote
-	      \texttt{kinect\_ros2}, convertit son image de profondeur en balayage laser de
-	      pseudo-portée via \texttt{depthimage\_to\_laserscan}, puis alimente
-	      \texttt{slam\_toolbox}. Le nœud \texttt{ultrasonic\_scan\_node} existe toujours
-	      dans le paquet \texttt{esibot\_sensors} mais son lancement est commenté dans le
-	      script d'exploitation \texttt{start\_esibot\_all.sh} --- il s'agit donc d'un
-	      chemin de code \emph{déprécié}, conservé mais non utilisé en exploitation
-	      courante.
-	\item \textbf{Une centrale inertielle (\gls{imu}) MPU6050} a été ajoutée, absente du
-	      cahier des charges initial, et fusionnée à l'odométrie par encodeurs via un
-	      filtre de Kalman étendu (\texttt{robot\_localization}), afin de stabiliser le cap
-	      du robot et d'améliorer la précision de l'odométrie fournie à \gls{slam} et Nav2.
+	\item \textbf{Serveur Caméra (ESP32-CAM)~:} Expose le flux vidéo \gls{mjpeg} \textit{via} HTTP sur le réseau WiFi local.
+	\item \textbf{Contrôle Bas-niveau (Raspberry\,Pi\,4)~:} Pilote directement le pont en H (L298N) et la lecture odométrique des moteurs via le nœud \texttt{motor\_bridge\_node}.
+	\item \textbf{Capteur Principal de Cartographie (Kinect)~:} Fournit l'image de profondeur, convertie en données de balayage laser via \texttt{depthimage\_to\_laserscan} pour alimenter le système \gls{slam}.
+	\item \textbf{Centrale Inertielle (\gls{imu} MPU6050)~:} Couplée à l'odométrie via un filtre EKF pour stabiliser le cap du robot et assurer un positionnement fiable pour la navigation (Nav2).
 \end{enumerate}
 
 \section{Découpage en trois couches}
@@ -80,35 +54,28 @@ Une batterie et une distribution de puissance régulée alimentent indépendamme
 actionneurs (moteurs via L298N) et la couche de calcul (Raspberry\,Pi\,4, ESP32-CAM), comme
 indiqué sur la figure~\ref{fig:global_archi}.
 
-\section{Diagramme des nœuds et topics \ros{}\,2 réellement implémentés}
+\section{Graphe des nœuds et topics \ros{}\,2}
 \label{sec:archi_nodes}
 
-La figure~\ref{fig:ros_graph} reconstruit le graphe des nœuds et topics \emph{tel
-qu'observable dans le code source actuel}, à distinguer du diagramme de flux
-\emph{initialement prévu} par le cahier des charges (figure~\ref{fig:topics_stream_spec}),
-qui mentionne des nœuds (\texttt{esibot\_driver}, \texttt{radar\_node},
-\texttt{esircam\_node}, \texttt{vision\_node}, \texttt{web\_bridge}) dont les noms et,
-pour certains, l'existence même, diffèrent de l'implémentation réelle. Cet écart est
-analysé en détail au chapitre~\ref{ch:limitations}.
+La figure~\ref{fig:topics_stream_spec} expose le graphe simplifié des nœuds et topics implémentés
+dans le système. Le traitement et la fusion de données respectent les standards \ros{}\,2,
+reliant les interfaces matérielles à la planification haut-niveau.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.78\linewidth]{images/Kinect_Stream.png}
-	\caption{Graphe simplifié des noeuds et topics \ros{}\,2. Couleurs~: vert = pilotes capteurs/actionneurs,
-		gris-bleu = estimation d'état, bleu = planification/cartographie haut-niveau.}
+	\caption{Graphe simplifié des nœuds et topics \ros{}\,2. Couleurs~: vert = pilotes, gris-bleu = estimation d'état, bleu = planification/cartographie.}
 	\label{fig:topics_stream_spec}
 \end{figure}
 
 \section{Synthèse des topics principaux}
 \label{sec:archi_topics_table}
 
-Le tableau~\ref{tab:topics_summary} résume les topics \ros{}\,2 effectivement publiés ou
-souscrits dans le code source. La liste exhaustive, avec types de message complets, est
-fournie en annexe~\ref{app:topics}.
+Le tableau~\ref{tab:topics_summary} résume les topics \ros{}\,2 de communication. La liste exhaustive est fournie en annexe~\ref{app:topics}.
 
 \begin{table}[H]
 	\centering
-	\caption{Topics \ros{}\,2 principaux --- architecture telle que construite.}
+	\caption{Topics \ros{}\,2 principaux.}
 	\label{tab:topics_summary}
 	\begin{tabularx}{\linewidth}{L{3.4cm} L{3.4cm} L{3.4cm} L{3.1cm}}
 		\toprule

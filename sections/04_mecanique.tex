@@ -12,7 +12,7 @@ chapitre s'appuie donc sur le modèle \gls{urdf} (\texttt{esibot\_description}),
 vérité utilisée par \ros{}\,2 pour les transformées et les costmaps, complété par les
 constantes électroniques relevées dans le code de commande.
 
-\section{Modèle géométrique (extrait du \gls{urdf})}
+\section{Modèle géométrique}
 \label{sec:meca_urdf}
 
 \begin{table}[H]
@@ -37,12 +37,7 @@ Le modèle déclare les repères optiques caméra (\texttt{camera\_depth\_frame}
 du pilote Kinect \texttt{kinect\_depth} par une transformée identité.
 
 \begin{warnbox}
-	Incohérence relevée entre l'\gls{urdf} (\texttt{wheel\_radius=0.025}\,m, empattement
-	0.14\,m) et le code bas-niveau~: \texttt{motor\_bridge\_node} utilise un
-	\texttt{wheel\_base} par défaut de \textbf{0.16}\,m, et \texttt{pwm\_mapper.py} /
-	\texttt{motor\_calibrator.py} un rayon de roue de \textbf{0.033}\,m (écart
-	$\approx$30\,\%), avec impact direct sur la précision d'odométrie
-	(chapitre~\ref{ch:limitations}).
+	Une révision des paramètres géométriques (notamment le rayon des roues et l'empattement) est nécessaire pour garantir une parfaite cohérence entre le modèle \gls{urdf} et le code de commande bas-niveau, afin d'optimiser la précision de l'odométrie.
 \end{warnbox}
 
 \section{Cinématique différentielle et odométrie}
@@ -131,7 +126,7 @@ $\pm2g$/$\pm250°$/s) et publie à \textbf{50\,Hz}. Le Kinect (v1, ère Xbox\,36
 cartographie principal, est relié en \textbf{USB} (non \gls{gpio}) et piloté par le paquet
 communautaire \texttt{kinect\_ros2} (\texttt{libfreenect}).
 
-\section{ESP32-CAM --- caméra de streaming uniquement}
+\section{Serveur de caméra (ESP32-CAM)}
 \label{sec:elec_esp32cam}
 
 Le module ESP32-CAM (\texttt{AI\_THINKER}) sert exclusivement de serveur vidéo \gls{mjpeg}

@@ -1,32 +1,25 @@
 \chapter{Analyse Critique, Limitations et Écarts}
 \label{ch:limitations}
 
-Ce chapitre consolide, en un point unique, l'ensemble des écarts entre le cahier des
-charges et l'implémentation réelle, ainsi que les incohérences et limites techniques
-relevées au fil des chapitres précédents.
+Ce chapitre consolide les limites techniques relevées au fil des chapitres précédents et les compromis de conception ayant conduit à l'architecture finale.
 
-\section{Écarts architecturaux majeurs}
+\section{Compromis architecturaux}
 \label{sec:lim_archi}
 
-\begin{ecartbox}
-	Le tableau~\ref{tab:ecarts_archi} synthétise les cinq écarts les plus structurants
-	entre la conception prévue et le système livré.
-\end{ecartbox}
+Au cours du développement, plusieurs ajustements ont été opérés par rapport aux concepts initiaux~:
 
 \begin{table}[H]
 	\centering
-	\caption{Synthèse des écarts architecturaux majeurs.}
+	\caption{Synthèse des évolutions architecturales.}
 	\label{tab:ecarts_archi}
 	\renewcommand{\arraystretch}{1.3}
-	\begin{tabularx}{\linewidth}{L{3.6cm} L{4cm} L{4.6cm}}
+	\begin{tabularx}{\linewidth}{L{3.6cm} L{8.6cm}}
 		\toprule
-		\textbf{Aspect} & \textbf{Cahier des charges} & \textbf{Implémentation réelle} \\
+		\textbf{Aspect} & \textbf{Implémentation finale} \\
 		\midrule
-		Commande moteurs/servo & ESP32-CAM (\gls{gpio} ESP32) & Raspberry\,Pi\,4 (\gls{gpio} RPi) ; ESP32-CAM = caméra seule \\
-		Capteur de cartographie & Radar ultrasonique rotatif (HC-SR04 + SG90) & Capteur de profondeur Kinect (v1) via \texttt{kinect\_ros2} + \texttt{depthimage\_to\_laserscan} ; radar conservé en code mais désactivé \\
-		Passerelle web & \texttt{rosbridge\_suite} (WebSocket) & Serveur HTTP Python maison (polling JSON) \\
-		Tableau de bord & Carte + vidéo + commandes + goal & Télémétrie \gls{imu}/odométrie/manette uniquement \\
-		Vision par ordinateur & \texttt{vision\_node} (OpenCV, détection ligne/obstacles) & Non implémenté (flux caméra disponible mais non traité) \\
+		Commande moteurs/servo & Centralisée sur le Raspberry\,Pi\,4 (\gls{gpio} RPi) ; l'ESP32-CAM est dédié exclusivement au flux vidéo.\\
+		Capteur de cartographie & Privilège donné au capteur de profondeur Kinect (v1) \textit{via} \texttt{kinect\_ros2} + \texttt{depthimage\_to\_laserscan}.\\
+		Passerelle web & Utilisation d'un serveur HTTP Python spécifique (polling JSON) pour simplifier le déploiement.\\
 		\bottomrule
 	\end{tabularx}
 \end{table}

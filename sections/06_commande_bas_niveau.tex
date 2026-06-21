@@ -1,7 +1,7 @@
 \chapter{Commande Bas-Niveau et Fusion de Capteurs}
 \label{ch:commande_bas_niveau}
 
-\section{Le nœud \texttt{motor\_bridge\_node}}
+\section{Contrôle moteur (\texttt{motor\_bridge\_node})}
 \label{sec:cbn_motor_bridge}
 
 Ce nœud (paquet \texttt{esibot\_hardware}) constitue le cœur de la commande temps-réel du
@@ -44,7 +44,7 @@ anti-\emph{windup} limite l'accumulation du terme intégral lorsque la commande 
 	communication réseau avec le nœud de téléopération ou de Nav2.
 \end{notebox}
 
-\section{Mise à l'échelle PWM (\texttt{pwm\_mapper.py})}
+\section{Conversion de cap et PWM}
 \label{sec:cbn_pwm_mapper}
 
 Le module \texttt{pwm\_mapper.py} convertit une vitesse linéaire de roue souhaitée
@@ -88,7 +88,7 @@ Le nœud \texttt{mpu6050\_node} (paquet \texttt{esibot\_sensors}) publie en cont
 correction de cap (lacet) en boucle fermée, réduisant la dérive directionnelle inhérente à
 l'odométrie par encodeurs seule (notamment lors d'un glissement de roue).
 
-\section{Fusion de capteurs --- filtre de Kalman étendu}
+\section{Fusion de données (Filtre EKF)}
 \label{sec:cbn_ekf}
 
 L'odométrie brute (\topic{/odom}, issue des seuls encodeurs) et les données inertielles
@@ -103,39 +103,3 @@ par l'\gls{imu} mais invisibles aux encodeurs. Le filtre publie également la tr
 (\texttt{publish\_tf: true}), complétant la chaîne
 \topic{map} $\rightarrow$ \topic{odom} $\rightarrow$ \topic{base\_link} requise par Nav2.
 
-\section{Radar ultrasonique rotatif --- chemin de code déprécié}
-\label{sec:cbn_ultrasonic}
-
-Conformément au cahier des charges initial, le paquet \texttt{esibot\_sensors} contient un
-nœud \texttt{ultrasonic\_scan\_node} qui implémente fidèlement le concept de
-« pseudo-LiDAR »~: balayage d'un servo-moteur entre deux bornes angulaires, déclenchement
-d'une mesure HC-SR04 à chaque position, et assemblage des paires (angle, distance) en un
-message \texttt{sensor\_msgs/LaserScan} publié sur \topic{/scan}, ainsi que la publication
-de l'angle courant du servo sur \topic{/servo\_angle} (pour la visualisation de la tourelle
-dans l'arbre \gls{tf}). Le tableau~\ref{tab:radar_params} résume ses paramètres.
-
-\begin{table}[H]
-	\centering
-	\caption{Paramètres du nœud \texttt{ultrasonic\_scan\_node} (chemin déprécié, non lancé par défaut).}
-	\label{tab:radar_params}
-	\begin{tabularx}{\linewidth}{L{5cm} C{3cm} L{4.5cm}}
-		\toprule
-		\textbf{Paramètre} & \textbf{Valeur par défaut} & \textbf{Rôle} \\
-		\midrule
-		Plage angulaire de balayage & 0°~--~180° & couverture frontale (non 360°) \\
-		Pas angulaire & configurable (5°--10°) & 18 à 36 mesures par balayage \\
-		Portée HC-SR04 & 0.02~--~4\,m & limites physiques du capteur \\
-		Broche SIG partagée & GPIO\,23 & déclenchement et écho sur la même broche \\
-		Broche servo & GPIO\,18 & PWM matériel/logiciel \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
-
-Toutefois, ce nœud \textbf{n'est pas activé} dans le script d'exploitation principal
-(\texttt{start\_esibot\_all.sh}), où la ligne de lancement correspondante est commentée
-(\texttt{\# ros2 launch esibot\_bringup ultrasonic\_radar.launch.py \&}). En exploitation
-courante, c'est le pipeline Kinect $\rightarrow$ \texttt{depthimage\_to\_laserscan}
-(chapitre~\ref{ch:slam}) qui alimente \topic{/scan}. Le nœud ultrasonique reste néanmoins
-fonctionnel et pourrait être réactivé comme solution de secours en cas d'indisponibilité
-du Kinect, les deux sources étant interchangeables du point de vue de \gls{slam} et de
-Nav2 puisqu'elles publient le même type de message sur le même topic.

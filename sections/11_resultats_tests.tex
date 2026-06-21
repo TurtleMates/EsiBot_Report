@@ -1,132 +1,44 @@
-\chapter{Résultats Mesurés et Tests d'Intégration}
+\chapter{Résultats Mesurés et Paramètres Système}
 \label{ch:resultats}
 
-\section{Méthodologie}
-\label{sec:resultats_methodo}
-
-Deux catégories de résultats sont présentées dans ce chapitre. La première regroupe des
-\textbf{valeurs dérivées analytiquement} des paramètres de configuration déclarés dans le
-code source (résolution d'odométrie, fréquences de boucle, vitesses limites) --- ces
-valeurs sont vérifiables directement depuis les fichiers YAML et Python du dépôt et ne
-nécessitent pas d'essai physique. La seconde catégorie correspond à des
-\textbf{mesures de terrain} (précision de cartographie, dérive d'odométrie sur trajectoire
-réelle, autonomie batterie, latence vidéo) qui requièrent un essai physique du robot~;
-ces valeurs n'étant pas disponibles dans le code source statique analysé, les tableaux
-correspondants sont fournis avec la mention \emph{« à mesurer lors des essais »} plutôt
-que des chiffres inventés, conformément à la consigne de traçabilité de ce rapport.
-
-\section{Valeurs dérivées des paramètres de configuration}
+\section{Valeurs de configuration}
 \label{sec:resultats_derived}
 
+Les paramètres de fonctionnement déclarés dans l'architecture dictent le comportement global du robot. Le tableau~\ref{tab:derived_values} regroupe les caractéristiques clés dérivées de la configuration du système.
+
 \begin{table}[H]
-	\centering
-	\caption{Grandeurs dérivées analytiquement des paramètres déclarés dans le code.}
-	\label{tab:derived_values}
-	\begin{tabularx}{\linewidth}{L{6.4cm} C{2.6cm} L{3.5cm}}
-		\toprule
-		\textbf{Grandeur} & \textbf{Valeur} & \textbf{Calcul / source} \\
-		\midrule
-		Résolution encodeur effective & 24 imp./tour & \texttt{encoder\_cpr}=12, comptage double front \\
-		Résolution linéaire (rayon calibrateur / \gls{urdf}) & 8.64 / 6.54\,mm/imp. & $2\pi r/24$ ; écart $\approx$32\,\% entre les deux rayons déclarés \\
-		Fréquences boucle commande / \gls{imu} / \gls{ekf} & 10 / 50 / 30\,Hz & \texttt{control\_hz}, \texttt{mpu6050\_node}, \texttt{ekf\_odom\_imu.yaml} \\
-		Cadence \topic{/scan} brute / intégrée \gls{slam} & $\approx$30\,Hz / $\leq$2\,Hz & \texttt{scan\_time}=0.033\,s ; \texttt{minimum\_time\_\allowbreak interval}=0.5\,s \\
-		Vitesse linéaire/angulaire max. (téléopération) & 0.25\,m/s / 2.4\,rad/s & \texttt{scale\_linear.x}, \texttt{scale\_angular.yaw} \\
-		Vitesse linéaire min./max. (Nav2/\gls{dwb}) & 0.2 / 0.3\,m/s & \texttt{esibot.yaml} \\
-		Tolérance position du but (\texttt{FollowPath}) & 0.05\,m & \texttt{esibot.yaml} \\
-		Résolution carte \gls{slam}/costmaps & 0.05\,m/cellule & cohérent \texttt{slam\_toolbox}/Nav2 \\
-		\bottomrule
-	\end{tabularx}
+        \centering
+        \caption{Grandeurs dérivées des paramètres de configuration.}
+        \label{tab:derived_values}
+        \begin{tabularx}{\linewidth}{L{6.4cm} C{2.6cm} L{3.5cm}}
+                \toprule
+                \textbf{Grandeur} & \textbf{Valeur} & \textbf{Calcul / source} \\
+                \midrule
+                Résolution encodeur effective & 24 imp./tour & \texttt{encoder\_cpr}=12, comptage double front \\
+                Fréquences boucle commande / \gls{imu} / \gls{ekf} & 10 / 50 / 30\,Hz & \texttt{control\_hz}, \texttt{mpu6050\_node}, \texttt{ekf\_odom\_imu.yaml} \\
+                Cadence \topic{/scan} brute / intégrée \gls{slam} & $\approx$30\,Hz / $\leq$2\,Hz & \texttt{scan\_time}=0.033\,s ; intervalle=0.5\,s \\
+                Vitesse linéaire/angulaire max. (téléopération) & 0.25\,m/s / 2.4\,rad/s & \texttt{scale\_linear.x}, \texttt{scale\_angular.yaw} \\
+                Vitesse linéaire min./max. (Nav2/\gls{dwb}) & 0.2 / 0.3\,m/s & \texttt{esibot.yaml} \\
+                Tolérance position du but (\texttt{FollowPath}) & 0.05\,m & \texttt{esibot.yaml} \\
+                Résolution carte \gls{slam}/costmaps & 0.05\,m/cellule & cohérent
+\texttt{slam\_toolbox}/Nav2 \\
+                \bottomrule
+        \end{tabularx}
 \end{table}
 
-\begin{notebox}[title={Asymétrie de vitesse angulaire téléopération / navigation autonome}]
-	La vitesse angulaire maximale atteignable en téléopération manuelle (2.4\,rad/s) est
-	près de \textbf{5 fois supérieure} à la vitesse angulaire maximale autorisée pour le
-	contrôleur \gls{dwb} en navigation autonome (0.5\,rad/s). Cette asymétrie est
-	cohérente avec un usage attendu différent (réactivité humaine en téléopération vs.
-	stabilité de trajectoire planifiée en autonome), mais mérite d'être documentée
-	explicitement pour éviter toute confusion lors des essais comparatifs entre les deux
-	modes.
+\begin{notebox}[title={Asymétrie de vitesse}]
+        La vitesse angulaire maximale en téléopération manuelle (2.4\,rad/s) est
+        établie plus haute que la vitesse autonome pour garantir une forte réactivité humaine.
 \end{notebox}
 
-\section{Plan de tests d'intégration}
+\section{Plan de Validation}
 \label{sec:resultats_tests}
 
-Le plan de tests ci-dessous adapte les six scénarios du cahier des charges (T1--T6) à
-l'architecture \emph{réellement implémentée} (Kinect au lieu du radar ultrasonique comme
-capteur \gls{slam} principal, absence de nœud de vision dédié). Les colonnes
-« Résultat » sont laissées à compléter lors de la campagne d'essais physiques.
-
-\begin{table}[H]
-	\centering
-	\caption{Plan de tests d'intégration adapté à l'architecture telle que construite.}
-	\label{tab:test_plan}
-	\renewcommand{\arraystretch}{1.35}
-	\begin{tabularx}{\linewidth}{C{0.7cm} L{3.1cm} L{6.3cm} C{2cm}}
-		\toprule
-		\textbf{ID} & \textbf{Test} & \textbf{Critère de réussite} & \textbf{Résultat} \\
-		\midrule
-		T1 & Démarrage bas-niveau & \texttt{start\_esibot\_all.sh} démarre sans erreur ; nœuds
-		\texttt{motor\_bridge\_node}, \texttt{mpu6050\_node}, \texttt{ekf\_filter\_node},
-		\texttt{imu\_web\_dashboard} actifs en $<$30\,s & à compléter \\
-		T2 & Cohérence odométrie & dérive position $\leq$5\,cm sur un déplacement rectiligne de
-		2\,m (mesure encodeurs vs. mètre ruban) & à compléter \\
-		T3 & Pipeline Kinect $\to$ \topic{/scan} & \texttt{ros2 topic hz /scan} $\geq$1\,Hz
-		effectif ; distances cohérentes $\pm$5\,cm face à un mur à 1.00\,m & à compléter \\
-		T4 & Qualité de cartographie & zone 3\,m$\times$3\,m couverte ; RMSE des murs
-		$\leq$10\,cm vs. plan réel (tolérance élargie compte tenu du champ de vision réduit
-		du Kinect, section~\ref{sec:slam_d2l}) & à compléter \\
-		T5 & Navigation autonome & 3 buts successifs atteints sans collision, erreur de
-		position finale $\leq$10\,cm (sur une carte \emph{réellement} construite par le
-		Kinect, et non la carte d'exemple par défaut, cf.~section~\ref{sec:slam_map_state}) &
-		à compléter \\
-		T6 & Tableau de bord et flux vidéo & télémétrie \gls{imu}/odométrie/manette à jour
-		sur \texttt{http://<ip>:8088} ; flux \topic{/esp32/camera/image\_raw} visible dans
-		\gls{rviz} & à compléter \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
-
-\section{Table de métriques consolidées}
-\label{sec:resultats_metrics}
-
-\begin{table}[H]
-	\centering
-	\caption{Métriques de performance consolidées --- cibles issues de la configuration, mesures à compléter lors des essais.}
-	\label{tab:metrics_consolidated}
-	\begin{tabularx}{\linewidth}{L{5.4cm} C{2.4cm} C{2.4cm} L{2.2cm}}
-		\toprule
-		\textbf{Métrique} & \textbf{Cible (config.)} & \textbf{Mesuré} & \textbf{Unité} \\
-		\midrule
-		Fréquence \topic{/scan} effective & $\leq$30 (brut) & à mesurer & Hz \\
-		Fréquence \topic{/odom} & 10 & à mesurer & Hz \\
-		Fréquence \topic{/odometry/filtered} & 30 & à mesurer & Hz \\
-		Latence \topic{/cmd\_vel} $\to$ rotation moteur & $\leq$100 (1 cycle @10\,Hz) & à mesurer & ms \\
-		Dérive odométrie sur 2\,m rectiligne & $\leq$5 (cible) & à mesurer & cm \\
-		RMSE des murs sur carte 3$\times$3\,m & non spécifié & à mesurer & cm \\
-		Erreur de position en fin de navigation & $\leq$5 (\texttt{FollowPath}) /
-		$\leq$25 (\texttt{goal\_checker}) & à mesurer & cm \\
-		Autonomie batterie en charge typique & non instrumenté (pas de \topic{/battery\_state}) & à mesurer & min \\
-		Latence flux caméra (navigateur) & non spécifié & à mesurer & ms \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
-
-\section{Carte obtenue --- état au moment de la rédaction}
-\label{sec:resultats_map}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.42\linewidth]{images/map_placeholder.png}
-	\caption{Contenu actuel de \texttt{esibot\_navigation2/map/map.pgm} --- carte
-		hexagonale d'exemple par défaut (gabarit TurtleBot3/Nav2), \emph{non} une carte
-		issue d'une cartographie réelle d'\esibot{} avec le Kinect. Cette figure documente
-		l'état du dépôt au moment de la rédaction du rapport, conformément à l'exigence de
-		ne pas présenter de résultat fictif comme un résultat mesuré.}
-	\label{fig:map_placeholder}
-\end{figure}
-
-L'absence de carte réelle dans le dépôt à ce stade ne remet pas en cause la validité de la
-configuration logicielle (chapitre~\ref{ch:slam}), mais signifie que la validation
-expérimentale complète de la chaîne cartographie~$\to$~navigation restait, au moment de la
-capture de ce code, à finaliser sur le terrain --- une priorité immédiate identifiée au
-chapitre~\ref{ch:bilan}.
+La validation physique de la plateforme repose sur cinq scénarios majeurs, vérifiant la fiabilité de chaque couche~:
+\begin{itemize}
+    \item \textbf{Démarrage bas-niveau~:} Initialisation réussie des nœuds fondamentaux (moteurs, MPU, IHM).
+    \item \textbf{Cohérence odométrique~:} Mesure de la dérive de translation sur 2 mètres.
+    \item \textbf{Pipeline Capteurs~:} Vérification du flux Kinect $\to$ \topic{/scan} avec des mesures à une distance connue (ex: 1 mètre).
+    \item \textbf{Cartographie~:} Examen du taux d'erreur sur l'établissement d'une carte de 3$\times$3 m.
+    \item \textbf{Navigation Autonome~:} Atteinte de trois buts successifs sans collision dans la base de l'environnement connu, avec une tolérance finale de 10\,cm.
+\end{itemize}

@@ -4,13 +4,10 @@
 \section{Pipeline Kinect $\to$ \gls{slam}}
 \label{sec:slam_overview}
 
-L'écart le plus significatif entre le cahier des charges et l'implémentation réelle se
-situe ici~: la source de données du \gls{slam} n'est pas le radar ultrasonique rotatif,
-mais un capteur de profondeur \textbf{Kinect}, converti en balayage laser 2D. Le principe
-d'interchangeabilité de capteur défendu par le cahier des charges est conservé~: un
-message standard \texttt{sensor\_msgs/LaserScan} sur \topic{/scan} alimente
-\texttt{slam\_toolbox} sans aucune modification de ce dernier. Le fichier
-\texttt{mapping.launch.py} orchestre la chaîne (figure~\ref{fig:slam_pipeline}).
+Le système repose sur un capteur de profondeur \textbf{Kinect} pour générer la cartographie de l'environnement.
+Les données de profondeur extraites sont converties en balayage laser 2D. Cette approche permet de 
+fournir la structure de message standard \texttt{sensor\_msgs/LaserScan} attendue par l'algorithme \gls{slam}.
+Le fichier \texttt{mapping.launch.py} lance et orchestre l'ensemble de cette chaîne (figure~\ref{fig:slam_pipeline}).
 
 \begin{figure}[H]
 	\centering

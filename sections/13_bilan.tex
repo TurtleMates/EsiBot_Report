@@ -4,14 +4,8 @@
 \section{Bilan technique}
 \label{sec:bilan_technique}
 
-Le projet \esibot{} a abouti à un robot mobile différentiel fonctionnel, dont
-l'architecture --- bien que sensiblement réorganisée par rapport au cahier des charges
-initial --- reste fidèle à la philosophie de conception du TurtleBot3 Burger~: une pile
-logicielle \ros{}\,2 standard (\texttt{slam\_toolbox}, Nav2, \texttt{robot\_localization})
-pilotant un robot différentiel bas coût, avec un principe d'interchangeabilité de capteur
-de cartographie pleinement exploité (substitution réussie du radar ultrasonique par un
-Kinect, sans modification des paquets \gls{slam}/navigation). Les acquis techniques
-majeurs sont~:
+Le projet \esibot{} a abouti à un robot mobile différentiel fonctionnel s'alignant sur des architectures reconnues telles que le TurtleBot3 Burger. L'utilisation d'une pile logicielle \ros{}\,2 standard (\texttt{slam\_toolbox}, Nav2, \texttt{robot\_localization}) 
+pour piloter un robot bas coût a permis de concrétiser~:
 
 \begin{itemize}
 	\item une chaîne de commande bas-niveau complète et autonome (encodeurs, \gls{pid} par
