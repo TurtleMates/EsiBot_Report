@@ -93,60 +93,9 @@ analysé en détail au chapitre~\ref{ch:limitations}.
 
 \begin{figure}[H]
 	\centering
-	\resizebox{0.94\linewidth}{!}{%
-		\begin{tikzpicture}[
-				node/.style={draw, rounded corners=3pt, minimum height=0.85cm, minimum width=2.6cm,
-						fill=EsiGray, font=\scriptsize\bfseries, text=EsiDark, align=center},
-				topic/.style={font=\scriptsize, text=EsiAccent, align=center},
-				arr/.style={-Stealth, thick, color=EsiBlue!80}
-			]
-			% Sensor / driver nodes (left column)
-			\node[node, fill=EsiGreen!12] (kinect) at (0,8) {kinect\_ros2\\\tiny pilote Kinect (libfreenect)};
-			\node[node, fill=EsiGreen!12] (d2l) at (0,6.4) {depthimage\_to\_\\laserscan};
-			\node[node, fill=EsiGreen!12] (mpu) at (0,4.8) {mpu6050\_node};
-			\node[node, fill=EsiGreen!12] (motor) at (0,3.2) {motor\_bridge\_node};
-			\node[node, fill=EsiGreen!12] (esp32br) at (0,1.6) {esp32\_camera\_bridge};
-			\node[node, fill=EsiGreen!12] (joy) at (0,0) {joy\_node};
-
-			% Middle: estimation / fusion
-			\node[node, fill=EsiAccent!15] (ekf) at (5,4) {ekf\_filter\_node\\\tiny robot\_localization};
-			\node[node, fill=EsiAccent!15] (rsp) at (5,2.4) {robot\_state\_\\publisher};
-			\node[node, fill=EsiAccent!15] (teleop) at (5,0) {teleop\_twist\_\\joy\_node};
-
-			% High level
-			\node[node, fill=EsiBlue!12] (slam) at (10,6.4) {slam\_toolbox};
-			\node[node, fill=EsiBlue!12] (nav2) at (10,4) {nav2\_bringup\\\tiny (amcl, planner, DWB, BT)};
-			\node[node, fill=EsiBlue!12] (dash) at (10,1.2) {imu\_web\_dashboard};
-
-			\draw[arr] (kinect) -- node[topic, above]{/kinect/depth/image\_raw} (d2l);
-			\draw[arr] (d2l) -- node[topic, right]{/scan} (slam.west|-d2l);
-			\draw[arr] (mpu) -- node[topic, above]{/imu/data\_raw} (ekf.west|-mpu);
-			\draw[arr] (motor) -- node[topic, below]{/odom} (ekf.west|-motor);
-			\draw[arr] (mpu) edge[bend left=8] node[topic, right, pos=0.25]{/imu/data\_raw} (motor.north);
-			\draw[arr] (ekf) -- node[topic, right]{/odometry/filtered} (nav2.west|-ekf);
-			\draw[arr] (ekf) -- (dash.north-|ekf);
-			\draw[arr] (joy) -- node[topic, below]{/joy} (teleop);
-			\draw[arr] (teleop) -- node[topic, above, pos=0.6]{/cmd\_vel} (motor.east|-teleop);
-			\draw[arr] (nav2) -- node[topic, above]{/cmd\_vel} (motor.east|-nav2);
-			\draw[arr] (slam) -- node[topic, above]{/map} (nav2);
-			\draw[arr] (rsp) -- node[topic, below]{/tf} (slam.south-|rsp);
-			\draw[arr] (esp32br) -- node[topic, below]{/esp32/camera/image\_raw} (dash.west|-esp32br);
-		\end{tikzpicture}
-	}
-	\caption{Graphe simplifié des nœuds et topics \ros{}\,2 réellement implémentés
-		(reconstruit à partir du code source). Couleurs~: vert = pilotes capteurs/actionneurs,
+	\includegraphics[width=0.78\linewidth]{images/Kinect_Stream.png}
+	\caption{Graphe simplifié des noeuds et topics \ros{}\,2. Couleurs~: vert = pilotes capteurs/actionneurs,
 		gris-bleu = estimation d'état, bleu = planification/cartographie haut-niveau.}
-	\label{fig:ros_graph}
-\end{figure}
-
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.78\linewidth]{images/Topics_Stream.png}
-	\caption{Diagramme de flux \ros{}\,2 \emph{initialement prévu} par le cahier des
-		charges (nœuds \texttt{esibot\_driver}, \texttt{radar\_node}, \texttt{esircam\_node},
-		\texttt{vision\_node}, \texttt{web\_bridge} via \texttt{rosbridge\_suite}). Conservé ici
-		à titre de comparaison avec la figure~\ref{fig:ros_graph} ; plusieurs de ces nœuds
-		n'ont pas d'équivalent direct dans le code livré (voir chapitre~\ref{ch:limitations}).}
 	\label{fig:topics_stream_spec}
 \end{figure}
 

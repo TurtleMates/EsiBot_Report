@@ -69,22 +69,7 @@ $v = (v_{\text{g}}+v_{\text{d}})/2$, $\omega = (v_{\text{d}}-v_{\text{g}})/L$
 
 \begin{figure}[H]
 	\centering
-	\resizebox{0.58\linewidth}{!}{%
-		\begin{tikzpicture}[
-				wheel/.style={draw, fill=EsiDark, minimum width=0.4cm, minimum height=1.2cm},
-				body/.style={draw, rounded corners=4pt, fill=EsiGray, minimum width=4cm, minimum height=2.6cm},
-				arr/.style={-Stealth, thick, EsiRed}
-			]
-			\node[body] (base) at (0,0) {};
-			\node[wheel] (lw) at (-2.2,0.9) {};
-			\node[wheel] (rw) at (-2.2,-0.9) {};
-			\node[draw, circle, fill=EsiAccent, minimum size=0.35cm] (caster) at (1.9,0) {};
-			\node[font=\scriptsize] at (1.9,-0.5) {roue folle};
-			\draw[<->, thick] (-2.2,1.6) -- node[above, font=\scriptsize]{$L$} (-2.2,-1.6);
-			\draw[arr] (0,0) -- ++(1.4,0) node[right, font=\scriptsize]{$v$};
-			\draw[arr] (0,0) arc[start angle=90, end angle=40, radius=0.5] node[above right, font=\scriptsize]{$\omega$};
-		\end{tikzpicture}
-	}
+	\includegraphics[width=0.5\linewidth]{images/diff_drive_diagram.png}
 	\caption{Modèle cinématique du robot différentiel \esibot{} (vue de dessus).}
 	\label{fig:diff_drive_diagram}
 \end{figure}
