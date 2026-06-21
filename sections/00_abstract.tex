@@ -1,55 +1,38 @@
-\chapter*{Résumé}
-\addcontentsline{toc}{chapter}{Résumé}
-\markboth{Résumé}{Résumé}
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\markboth{Abstract}{Abstract}
 
-\esibot{} est un robot mobile autonome à entraînement différentiel conçu et réalisé par
-l'équipe dans le cadre du projet intégrateur IoT de l'École Nationale Supérieure
-d'Informatique (ESI Alger). Le cahier des charges initial s'inspire du TurtleBot3 Burger
-(ROBOTIS) : un ESP32-CAM devait piloter directement les moteurs, le servo-moteur et un
-radar ultrasonique rotatif (HC-SR04 + SG90), pendant que le Raspberry\,Pi\,4 hébergeait la
-pile logicielle \ros{} (\gls{slam}, Nav2, tableau de bord web).
+\esibot{} is a differential-drive autonomous mobile robot designed and built by the team
+as part of the IoT integrative project at the École Nationale Supérieure d'Informatique
+(ESI Algiers). The initial specification was inspired by the TurtleBot3 Burger
+(ROBOTIS): an ESP32-CAM was meant to directly drive the motors, the servo motor and a
+rotating ultrasonic radar (HC-SR04 + SG90), while the Raspberry\,Pi\,4 hosted the \ros{}
+software stack (\gls{slam}, Nav2, web dashboard).
 
-Au fil du développement, l'architecture matérielle réellement implémentée a
-significativement évolué par rapport à ce cahier des charges. Le pilotage des deux
-moteurs à courant continu, la lecture des encodeurs et l'asservissement de vitesse
-(\gls{pid}) sont assurés \emph{directement} par les broches \gls{gpio} du Raspberry\,Pi\,4,
-épaulés par une centrale inertielle MPU6050 fusionnée par filtre de Kalman étendu
-(\texttt{robot\_localization}). L'ESP32-CAM est conservé uniquement comme caméra de
-streaming \gls{wifi} (\gls{mjpeg}), sans plus participer à la commande des actionneurs.
-Le radar ultrasonique rotatif reste disponible comme chemin de secours lent, mais la
-cartographie courante repose sur un capteur de profondeur Kinect (v1, ère Xbox\,360),
-piloté par \texttt{kinect\_ros2} et converti en balayage laser via
-\texttt{depthimage\_to\_laserscan}. La branche \texttt{working\_build} ajoute aussi la
-bibliothèque \texttt{depth\_cleanup} pour préparer un flux de profondeur nettoyé et
-référence \texttt{m-explore-ros2} pour l'exploration autonome.
+Over the course of development, the hardware architecture actually implemented evolved
+significantly from this specification. Control of the two DC motors, encoder readout and
+velocity control (\gls{pid}) are now handled \emph{directly} by the \gls{gpio} pins of the
+Raspberry\,Pi\,4, assisted by an MPU6050 inertial measurement unit fused through an
+extended Kalman filter (\texttt{robot\_localization}). The ESP32-CAM is retained solely
+as a \gls{wifi} streaming camera (\gls{mjpeg}), no longer participating in actuator
+control. The rotating ultrasonic radar remains available as a slow fallback path, but
+current mapping relies on a Kinect (v1, Xbox\,360 era) depth sensor, driven by
+\texttt{kinect\_ros2} and converted to a laser scan via
+\texttt{depthimage\_to\_laserscan}. The \texttt{working\_build} branch also adds the
+\texttt{depth\_cleanup} library to prepare a cleaned depth stream, and references
+\texttt{m-explore-ros2} for autonomous exploration.
 
-Ce rapport documente fidèlement cette architecture telle que construite : conception
-mécanique (châssis différentiel décrit par le modèle \gls{urdf}), câblage électronique
-déduit des paramètres de code, commande bas-niveau et asservissement moteur, pipeline de
-perception (\gls{imu}, Kinect), cartographie \gls{slam}, navigation autonome \ros{}
-Nav2, tableau de bord web de télémétrie, et téléopération par manette Xbox. Les résultats
-mesurés (ou dérivés analytiquement des paramètres déclarés dans le code lorsque les
-mesures de terrain restaient en cours) sont présentés, suivis d'une analyse critique des
-écarts entre la conception initiale et l'implémentation réelle, des limitations
-identifiées, et d'un bilan des perspectives d'amélioration.
-
-\vspace{6mm}
-\noindent\textbf{Mots-clés~:} \ros{} Humble, robot différentiel, \gls{slam},
-slam\_toolbox, Nav2, Kinect, Raspberry\,Pi\,4, ESP32-CAM, MPU6050, filtre de Kalman étendu,
-navigation autonome, robotique IoT, TurtleBot3.
+This report faithfully documents this as-built architecture: mechanical design
+(differential chassis described by the \gls{urdf} model), electronic wiring inferred
+from code parameters, low-level control and motor control loops, the perception
+pipeline (\gls{imu}, Kinect), \gls{slam} mapping, autonomous \ros{} Nav2 navigation, a
+telemetry web dashboard, and Xbox controller teleoperation. Measured results (or results
+derived analytically from the parameters declared in the code, where field measurements
+were still in progress) are presented, followed by a critical analysis of the
+discrepancies between the original design and the actual implementation, the identified
+limitations, and an outlook for future improvements.
 
 \vspace{6mm}
-\noindent\textbf{Abstract:} \esibot{} is a differential-drive autonomous mobile robot
-built as part of the ESI Algiers IoT integrative project. While the original
-specification mirrored the TurtleBot3 Burger with an ESP32-CAM driving the motors,
-servo and a rotating HC-SR04 ultrasonic radar, the as-built system evolved
-significantly: motor control, encoder odometry and \gls{pid} velocity loops now run
-directly on the Raspberry\,Pi\,4 \gls{gpio} headers, fused with an MPU6050 \gls{imu}
-through an \gls{ekf}. The ESP32-CAM is retained solely as a Wi-Fi \gls{mjpeg} video
-streamer, and the ultrasonic radar code path is retained as a slow fallback rather than
-the primary mapping sensor. A Kinect (v1) \gls{rgbd} camera now feeds
-\texttt{slam\_toolbox} through \texttt{depthimage\_to\_laserscan}; the
-\texttt{working\_build} branch also adds a metric \texttt{depth\_cleanup} library and an
-\texttt{m-explore-ros2} exploration dependency. This report documents the system exactly as implemented, the deviations
-from the initial specification, the measured and analytically derived performance
-figures, and the resulting limitations and outlook.
+\noindent\textbf{Keywords:} \ros{} Humble, differential-drive robot, \gls{slam},
+slam\_toolbox, Nav2, Kinect, Raspberry\,Pi\,4, ESP32-CAM, MPU6050, extended Kalman filter,
+autonomous navigation, IoT robotics, TurtleBot3.

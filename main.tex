@@ -2,13 +2,7 @@
 \PassOptionsToPackage{nopatch=footnote}{microtype}
 \usepackage{esibot}
 
-% ── French chapter / front-matter names (no babel to keep glossaries simple) ──
-\renewcommand{\contentsname}{Table des matières}
-\renewcommand{\listfigurename}{Liste des figures}
-\renewcommand{\listtablename}{Liste des tableaux}
-\renewcommand{\chaptername}{Chapitre}
-\renewcommand{\appendixname}{Annexe}
-\renewcommand{\bibname}{Références}
+% ── Front-matter names (English defaults from the report class) ──
 
 \newacronym{ros}{ROS}{Robot Operating System}
 \newacronym{slam}{SLAM}{Simultaneous Localization and Mapping}
@@ -17,13 +11,13 @@
 \newacronym{uart}{UART}{Universal Asynchronous Receiver-Transmitter}
 \newacronym{wifi}{WiFi}{Wireless Fidelity (IEEE 802.11)}
 \newacronym{urdf}{URDF}{Unified Robot Description Format}
-\newacronym{tf}{TF}{Transform Tree (arbre des transformées)}
+\newacronym{tf}{TF}{Transform Tree}
 \newacronym{imu}{IMU}{Inertial Measurement Unit}
 \newacronym{pid}{PID}{Proportional-Integral-Derivative}
 \newacronym{mjpeg}{MJPEG}{Motion JPEG}
 \newacronym{gpio}{GPIO}{General-Purpose Input/Output}
 \newacronym{iot}{IoT}{Internet of Things}
-\newacronym{cad}{CAD}{Computer-Aided Design (CAO)}
+\newacronym{cad}{CAD}{Computer-Aided Design}
 \newacronym{pla}{PLA}{Polylactic Acid}
 \newacronym{amcl}{AMCL}{Adaptive Monte Carlo Localization}
 \newacronym{dwb}{DWB}{Dynamic Window-Based local planner}
@@ -34,8 +28,8 @@
 \newacronym{cpr}{CPR}{Counts Per Revolution}
 \newacronym{rpi}{RPi}{Raspberry Pi}
 \newacronym{sbc}{SBC}{Single-Board Computer}
-\newacronym{occgrid}{OccupancyGrid}{grille d'occupation 2D probabiliste}
-\newacronym{bt}{BT}{Behavior Tree (arbre de comportement)}
+\newacronym{occgrid}{OccupancyGrid}{probabilistic 2D occupancy grid}
+\newacronym{bt}{BT}{Behavior Tree}
 \newacronym{cli}{CLI}{Command-Line Interface}
 
 \title{}

@@ -1,76 +1,79 @@
-\chapter{Bilan et Perspectives}
+\chapter{Outlook and Conclusion}
 \label{ch:bilan}
 
-\section{Bilan technique}
+\section{Technical Summary}
 \label{sec:bilan_technique}
 
-Le projet \esibot{} a abouti à un robot mobile différentiel fonctionnel s'alignant sur des architectures reconnues telles que le TurtleBot3 Burger. L'utilisation d'une pile logicielle \ros{} standard (\texttt{slam\_toolbox}, Nav2, \texttt{robot\_localization}) 
-pour piloter un robot bas coût a permis de concrétiser~:
+The \esibot{} project resulted in a functional differential-drive mobile robot aligned
+with recognized architectures such as the TurtleBot3 Burger. Using a standard \ros{}
+software stack (\texttt{slam\_toolbox}, Nav2, \texttt{robot\_localization}) to drive a
+low-cost robot made it possible to deliver:
 
 \begin{itemize}
-	\item une chaîne de commande bas-niveau complète et autonome (encodeurs, \gls{pid} par
-	      roue, calibration PWM$\to$RPM outillée) entièrement portée sur Raspberry\,Pi\,4 ;
-	\item une fusion de capteurs \gls{ekf} correctement scoper (vitesses uniquement pour
-	      l'odométrie, orientation absolue pour l'\gls{imu}), évitant le double comptage de
-	      dérive ;
-	\item un pipeline de cartographie Kinect $\to$ \texttt{depthimage\_to\_laserscan} $\to$
-	      \texttt{slam\_toolbox} cohérent et correctement paramétré (bornes de portée
-	      alignées, fermeture de boucle activée) ;
-	\item une configuration Nav2 complète (\gls{amcl}, costmaps double couche, \gls{dwb},
-	      comportements de récupération, moniteur de collision) ;
-	\item une téléopération manette et un tableau de bord web de télémétrie fonctionnels et
-	      simples à déployer (aucune dépendance externe pour le serveur HTTP).
+	\item a complete, autonomous low-level control chain (encoders, per-wheel \gls{pid},
+	      tooled PWM$\to$RPM calibration) entirely running on the Raspberry\,Pi\,4;
+	\item a correctly scoped \gls{ekf} sensor fusion (velocities only for odometry,
+	      absolute orientation for the \gls{imu}), avoiding double-counting of drift;
+	\item a coherent and correctly parameterized Kinect $\to$ \texttt{depthimage\_to\_laserscan}
+	      $\to$ \texttt{slam\_toolbox} mapping pipeline (aligned range bounds, loop
+	      closure enabled);
+	\item a complete Nav2 configuration (\gls{amcl}, dual-layer costmaps, \gls{dwb},
+	      recovery behaviors, collision monitor);
+	\item functional controller teleoperation and a telemetry web dashboard that are
+	      simple to deploy (no external dependency for the HTTP server).
 \end{itemize}
 
-\section{Plan d'action priorisé}
+\section{Prioritized Action Plan}
 \label{sec:bilan_plan}
 
-Sur la base de l'analyse du chapitre~\ref{ch:limitations}, les actions correctives
-suivantes sont proposées par ordre de priorité décroissante~:
+Based on the analysis in Chapter~\ref{ch:limitations}, the following corrective actions
+are proposed in decreasing order of priority:
 
 \begin{enumerate}
-	\item \textbf{Réconcilier les constantes géométriques} (rayon de roue, empattement,
-	      affectations \gls{gpio}) entre l'\gls{urdf}, \texttt{motor\_bridge\_node} et
-	      \texttt{motor\_calibrator}, idéalement via un fichier de paramètres unique partagé.
-	\item \textbf{Conduire la campagne de mesures de terrain} décrite au
-	      chapitre~\ref{ch:resultats} (tableaux~\ref{tab:test_plan}
-	      et~\ref{tab:metrics_consolidated}), en particulier la cartographie réelle d'une zone
-	      de 3\,m$\times$3\,m avec le Kinect, suivie de la validation de la navigation
-	      autonome sur cette carte --- la priorité la plus urgente avant la soutenance,
-	      le scénario de démonstration du jury en dépendant directement.
-	\item \textbf{Implémenter la supervision de batterie} (\topic{/battery\_state}) pour
-	      sécuriser les essais et les démonstrations.
-	\item \textbf{Ajouter un nœud de vision minimal} (détection de ligne ou de couleur par
-	      OpenCV) consommant \topic{/esp32/camera/image\_raw}, ne serait-ce qu'à titre
-	      démonstratif, pour combler l'écart du Livrable~3/cahier des charges.
-	\item \textbf{Étendre le tableau de bord web} pour y intégrer, au minimum, un affichage
-	      de la carte \gls{slam} (rendu canvas de l'\texttt{OccupancyGrid}) et un aperçu basse
-	      fréquence du flux caméra, rapprochant le Livrable~5 de sa spécification complète.
-	\item \textbf{Réintroduire un bouton d'activation} en téléopération manette, ou à défaut
-	      documenter explicitement ce choix de conception dans le README (Livrable~8).
+	\item \textbf{Reconcile the geometric constants} (wheel radius, wheelbase,
+	      \gls{gpio} assignments) between the \gls{urdf}, \texttt{motor\_bridge\_node}
+	      and \texttt{motor\_calibrator}, ideally via a single shared parameter file.
+	\item \textbf{Conduct the field measurement campaign} described in
+	      Chapter~\ref{ch:resultats} (Tables~\ref{tab:test_plan}
+	      and~\ref{tab:metrics_consolidated}), in particular the actual mapping of a
+	      3\,m$\times$3\,m area with the Kinect, followed by validation of autonomous
+	      navigation on that map --- the most urgent priority before the defense, as the
+	      jury's demonstration scenario depends directly on it.
+	\item \textbf{Implement battery supervision} (\topic{/battery\_state}) to secure
+	      trials and demonstrations.
+	\item \textbf{Add a minimal vision node} (line or color detection via OpenCV)
+	      consuming \topic{/esp32/camera/image\_raw}, even if only for demonstration
+	      purposes, to close the gap with Deliverable~3 of the specification.
+	\item \textbf{Extend the web dashboard} to include, at minimum, a display of the
+	      \gls{slam} map (canvas rendering of the \texttt{OccupancyGrid}) and a
+	      low-frequency preview of the camera stream, bringing Deliverable~5 closer to
+	      its full specification.
+	\item \textbf{Reintroduce an enable button} for controller teleoperation, or
+	      otherwise explicitly document this design choice in the README
+	      (Deliverable~8).
 \end{enumerate}
 
-\section{Perspectives d'évolution}
+\section{Future Outlook}
 \label{sec:bilan_perspectives}
 
-Au-delà des corrections immédiates, plusieurs axes d'évolution pourraient enrichir
-\esibot{} dans la suite du projet ou pour de futures promotions~: l'exploitation conjointe
-du flux couleur du Kinect (actuellement seule la profondeur est utilisée) pour de la
-détection visuelle complémentaire au radar ultrasonique conservé en réserve ; le retour
-d'une fusion à trois capteurs (Kinect + radar ultrasonique + odométrie) pour une
-robustesse accrue en cas de défaillance ponctuelle d'une source ; l'ajout d'une
-supervision énergétique complète avec estimation d'autonomie restante ; et,
-plus largement, la consolidation de la documentation (README, schéma électronique formel)
-afin de fiabiliser la reproductibilité du projet par d'autres équipes, conformément à
-l'esprit open-source revendiqué dès le cahier des charges initial.
+Beyond the immediate corrections, several avenues for evolution could enrich \esibot{}
+in the remainder of the project or for future cohorts: the joint use of the Kinect's
+color stream (currently only depth is used) for visual detection complementary to the
+ultrasonic radar kept in reserve; the reintroduction of three-sensor fusion (Kinect +
+ultrasonic radar + odometry) for increased robustness in the event of a temporary
+failure of one source; the addition of a complete power supervision system with
+estimation of remaining autonomy; and, more broadly, consolidating the documentation
+(README, formal electronic schematic) to make the project more reliably reproducible by
+other teams, in keeping with the open-source spirit claimed from the initial
+specification onward.
 
-\section{Mot de conclusion}
+\section{Concluding Remarks}
 \label{sec:bilan_conclusion}
 
-Ce rapport a documenté \esibot{} tel qu'il a été réellement conçu et codé, plutôt que tel
-qu'il avait été initialement envisagé sur le papier --- un choix méthodologique délibéré
-qui, espère l'équipe, constitue une base plus utile pour la suite du projet que la simple
-reproduction du cahier des charges initial. Les écarts identifiés ne sont pas des échecs
-mais des décisions d'ingénierie tracées et justifiables ; le plan d'action ci-dessus fixe
-le chemin vers une validation expérimentale complète du système avant la soutenance
-finale.
+This report has documented \esibot{} as it was actually designed and coded, rather than
+as it had been initially envisioned on paper --- a deliberate methodological choice
+that, the team hopes, constitutes a more useful foundation for the rest of the project
+than mere reproduction of the original specification. The identified deviations are not
+failures but traceable and justifiable engineering decisions; the action plan above sets
+out the path toward complete experimental validation of the system before the final
+defense.

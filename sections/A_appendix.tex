@@ -1,19 +1,19 @@
-\chapter{Annexes Techniques}
+\chapter{Technical Appendices}
 \label{app:topics}
 
-\section{Table exhaustive des topics \ros{}}
+\section{Exhaustive Table of \ros{} Topics}
 \label{app:topics_full}
 
 \begin{longtable}{L{4cm} L{3.6cm} L{3.4cm} L{3cm}}
-	\caption{Liste exhaustive des topics \ros{} identifiés dans le code source.}
+	\caption{Exhaustive list of \ros{} topics identified in the source code.}
 	\label{tab:topics_full} \\
 	\toprule
-	\textbf{Topic} & \textbf{Type} & \textbf{Publié par} & \textbf{Souscrit par} \\
+	\textbf{Topic} & \textbf{Type} & \textbf{Published by} & \textbf{Subscribed by} \\
 	\midrule
 	\endfirsthead
-	\multicolumn{4}{l}{\textit{(suite)}} \\
+	\multicolumn{4}{l}{\textit{(continued)}} \\
 	\toprule
-	\textbf{Topic} & \textbf{Type} & \textbf{Publié par} & \textbf{Souscrit par} \\
+	\textbf{Topic} & \textbf{Type} & \textbf{Published by} & \textbf{Subscribed by} \\
 	\midrule
 	\endhead
 	\bottomrule
@@ -21,49 +21,49 @@
 	\topic{/cmd\_vel} & geometry\_msgs/Twist & teleop\_twist\_joy\_node, nav2 & motor\_bridge\_node \\
 	\topic{/odom} & nav\_msgs/Odometry & motor\_bridge\_node & ekf\_filter\_node \\
 	\topic{/odometry/filtered} & nav\_msgs/Odometry & ekf\_filter\_node & nav2, dashboard \\
-	\topic{/encoder\_ticks\allowbreak(\_total)\allowbreak/left,right} & Int32/Int64 & motor\_bridge\_node & (diagnostic) \\
+	\topic{/encoder\_ticks\allowbreak(\_total)\allowbreak/left,right} & Int32/Int64 & motor\_bridge\_node & (diagnostics) \\
 	\topic{/imu/data\_raw} & sensor\_msgs/Imu & mpu6050\_node & motor\_bridge\_node, ekf, dashboard \\
 	\topic{/imu/temperature} & sensor\_msgs/Temperature & mpu6050\_node & dashboard \\
-	\topic{/scan} & sensor\_msgs/LaserScan & depthimage\_to\_laserscan (Kinect) \emph{ou} ultrasonic\_scan\_node (déprécié) & slam\_toolbox, nav2 \\
+	\topic{/scan} & sensor\_msgs/LaserScan & depthimage\_to\_laserscan (Kinect) \emph{or} ultrasonic\_scan\_node (deprecated) & slam\_toolbox, nav2 \\
 	\topic{/kinect/depth/image\_raw}, \topic{/camera\_info} & Image / CameraInfo & kinect\_ros2\_node & depthimage\_to\_laserscan \\
 	\topic{/map} & nav\_msgs/OccupancyGrid & slam\_toolbox & nav2, \gls{rviz} \\
 	\topic{/tf}, \topic{/tf\_static} & tf2\_msgs/TFMessage & robot\_state\_publisher, ekf, slam\_toolbox & nav2, \gls{rviz} \\
 	\topic{/joy} & sensor\_msgs/Joy & joy\_node & teleop\_twist\_joy\_node, dashboard \\
-	\topic{/esp32/camera/image\_raw} & sensor\_msgs/Image & esp32\_camera\_bridge & (consommateur optionnel) \\
+	\topic{/esp32/camera/image\_raw} & sensor\_msgs/Image & esp32\_camera\_bridge & (optional consumer) \\
 	\topic{/goal\_pose} & geometry\_msgs/PoseStamped & \gls{rviz} & nav2 (bt\_navigator) \\
 	\topic{/global,local\_costmap\allowbreak/costmap} & nav2\_msgs/Costmap & nav2 (costmap servers) & \gls{rviz}, planner/controller \\
 	\topic{/plan} & nav\_msgs/Path & planner\_server & controller\_server, \gls{rviz} \\
 \end{longtable}
 
-\section{API HTTP du tableau de bord et paquets \ros{} du dépôt}
+\section{Dashboard HTTP API and Repository \ros{} Packages}
 \label{app:http_api}
 \label{app:packages}
 
-Le serveur \texttt{imu\_web\_dashboard} (port 8088 par défaut) expose trois points
-d'accès~: \texttt{GET~/} (ou \texttt{/index.html}), la page HTML/JS du tableau de bord ;
-\texttt{GET~/api/imu}, l'état JSON consolidé (\gls{imu}, odométrie, manette,
-\topic{/cmd\_vel}) ; et \texttt{POST~/api/zero}, la remise à zéro des offsets de
-roulis/tangage affichés.
+The \texttt{imu\_web\_dashboard} server (port 8088 by default) exposes three endpoints:
+\texttt{GET~/} (or \texttt{/index.html}), the dashboard HTML/JS page;
+\texttt{GET~/api/imu}, the consolidated JSON state (\gls{imu}, odometry, controller,
+\topic{/cmd\_vel}); and \texttt{POST~/api/zero}, resetting the displayed roll/pitch
+offsets.
 
 \begin{table}[H]
 	\centering
-	\caption{Paquets \ros{} du workspace \texttt{Esi\_Bot}.}
+	\caption{\ros{} packages of the \texttt{Esi\_Bot} workspace.}
 	\label{tab:packages_summary}
 	\begin{tabularx}{\linewidth}{L{3.6cm} L{8.8cm}}
 		\toprule
-		\textbf{Paquet} & \textbf{Rôle} \\
+		\textbf{Package} & \textbf{Role} \\
 		\midrule
-		\texttt{esibot\_bringup} & lancements d'orchestration (téléopération, \gls{imu}, \gls{ekf}, tableau de bord, radar) \\
-		\texttt{esibot\_hardware} & commande moteurs/encodeurs (\texttt{motor\_bridge\_node}), \texttt{pwm\_mapper}, \texttt{motor\_calibrator} \\
-		\texttt{esibot\_sensors} & \texttt{mpu6050\_node}, \texttt{ultrasonic\_scan\_node} (déprécié) \\
-		\texttt{esibot\_description} & modèle \gls{urdf}/xacro, lancement \texttt{robot\_state\_publisher} \\
-		\texttt{esibot\_slam} & lancement du pipeline Kinect $\to$ \texttt{depthimage\_to\_laserscan} $\to$ \texttt{slam\_toolbox} \\
-		\texttt{esibot\_navigation2} & lancement Nav2, paramètres \texttt{esibot.yaml}, carte par défaut \\
-		\texttt{esibot\_dashboard} & \texttt{imu\_web\_dashboard} (serveur HTTP de télémétrie) \\
-		\texttt{depth\_cleanup} & bibliothèque C++/OpenCV de nettoyage métrique des images Kinect \texttt{16UC1} \\
-		\texttt{kinect\_ros2} (externe) & pilote Kinect (v1), basé sur \texttt{libfreenect} \\
-		\texttt{m-explore-ros2} (externe) & exploration autonome par frontières au-dessus de Nav2 et \topic{/map} \\
-		\texttt{esp32\_camera\_bridge} (externe) & pont \gls{mjpeg} HTTP $\to$ \ros{} \texttt{Image} \\
+		\texttt{esibot\_bringup} & orchestration launches (teleoperation, \gls{imu}, \gls{ekf}, dashboard, radar) \\
+		\texttt{esibot\_hardware} & motor/encoder control (\texttt{motor\_bridge\_node}), \texttt{pwm\_mapper}, \texttt{motor\_calibrator} \\
+		\texttt{esibot\_sensors} & \texttt{mpu6050\_node}, \texttt{ultrasonic\_scan\_node} (deprecated) \\
+		\texttt{esibot\_description} & \gls{urdf}/xacro model, \texttt{robot\_state\_publisher} launch \\
+		\texttt{esibot\_slam} & launch of the Kinect $\to$ \texttt{depthimage\_to\_laserscan} $\to$ \texttt{slam\_toolbox} pipeline \\
+		\texttt{esibot\_navigation2} & Nav2 launch, \texttt{esibot.yaml} parameters, default map \\
+		\texttt{esibot\_dashboard} & \texttt{imu\_web\_dashboard} (telemetry HTTP server) \\
+		\texttt{depth\_cleanup} & C++/OpenCV library for metric cleanup of \texttt{16UC1} Kinect images \\
+		\texttt{kinect\_ros2} (external) & Kinect (v1) driver, based on \texttt{libfreenect} \\
+		\texttt{m-explore-ros2} (external) & frontier-based autonomous exploration on top of Nav2 and \topic{/map} \\
+		\texttt{esp32\_camera\_bridge} (external) & \gls{mjpeg} HTTP $\to$ \ros{} \texttt{Image} bridge \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
@@ -71,14 +71,14 @@ roulis/tangage affichés.
 \section{Sources}
 \label{app:sources}
 
-L'ensemble du contenu technique de ce rapport a été établi à partir des sources
-suivantes, fournies par l'équipe~: le dépôt de code source \texttt{Esi\_Bot} (branche
-\texttt{working\_build}, paquets \texttt{esibot\_*}), le pilote \texttt{kinect\_ros2}, le
-firmware et le pont \ros{} de l'ESP32-CAM (\texttt{esp32-camera}), ainsi que la fiche de
-spécification officielle du projet \esibot{} (cahier des charges, comparatif TurtleBot3,
-liste des livrables) et les deux schémas d'architecture fournis par l'équipe
-(figures~\ref{fig:global_archi} et~\ref{fig:topics_stream_spec}). La discussion Kinect
-versus capteur ultrasonique s'appuie aussi sur l'article de Kamarudin, Mamduh, Shakaff et
-Zakaria, \emph{Performance Analysis of the Microsoft Kinect Sensor for 2D Simultaneous
+All of the technical content in this report was established from the following sources,
+provided by the team: the \texttt{Esi\_Bot} source code repository (\texttt{working\_build}
+branch, \texttt{esibot\_*} packages), the \texttt{kinect\_ros2} driver, the firmware and
+\ros{} bridge of the ESP32-CAM (\texttt{esp32-camera}), as well as the official
+\esibot{} project specification sheet (requirements document, TurtleBot3 comparison,
+list of deliverables) and the two architecture diagrams provided by the team
+(Figures~\ref{fig:global_archi} and~\ref{fig:topics_stream_spec}). The Kinect-versus-ultrasonic-sensor
+discussion also draws on the article by Kamarudin, Mamduh, Shakaff and Zakaria,
+\emph{Performance Analysis of the Microsoft Kinect Sensor for 2D Simultaneous
 Localization and Mapping (SLAM) Techniques}, \emph{Sensors} 14(12), 23365--23387, 2014,
 DOI \texttt{10.3390/s141223365}.

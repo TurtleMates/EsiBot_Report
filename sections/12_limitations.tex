@@ -1,130 +1,132 @@
-\chapter{Analyse Critique, Limitations et Écarts}
+\chapter{Critical Analysis, Limitations and Deviations}
 \label{ch:limitations}
 
-Ce chapitre distingue les écarts assumés du projet et les limites qui demandent encore une
-validation expérimentale. L'état actuel reste prometteur~: l'architecture logicielle est
-cohérente, les nœuds principaux existent, et les choix Kinect/Nav2/\gls{ekf} donnent une
-base techniquement solide. Les points ci-dessous relèvent surtout de la calibration fine
-nécessaire pour transformer une intégration fonctionnelle en produit démontrable de façon
-répétable.
+This chapter distinguishes the project's deliberate deviations from the limitations that
+still require experimental validation. The current state remains promising: the software
+architecture is consistent, the main nodes exist, and the Kinect/Nav2/\gls{ekf} choices
+provide a technically sound foundation. The points below mostly concern the fine
+calibration needed to turn a functional integration into a repeatably demonstrable
+product.
 
-\section{Compromis architecturaux}
+\section{Architectural Trade-offs}
 \label{sec:lim_archi}
 
-Au cours du développement, plusieurs ajustements ont été opérés par rapport aux concepts
-initiaux~:
+During development, several adjustments were made relative to the initial concepts:
 
 \begin{table}[H]
 	\centering
-	\caption{Synthèse des évolutions architecturales.}
+	\caption{Summary of architectural changes.}
 	\label{tab:ecarts_archi}
 	\renewcommand{\arraystretch}{1.3}
 	\begin{tabularx}{\linewidth}{L{3.8cm} L{8.4cm}}
 		\toprule
-		\textbf{Aspect} & \textbf{Implémentation finale} \\
+		\textbf{Aspect} & \textbf{Final implementation} \\
 		\midrule
-		Commande moteurs/servo & Centralisée sur le Raspberry\,Pi\,4 ; l'ESP32-CAM est dédié au flux vidéo.\\
-		Capteur de cartographie & Kinect v1 via \texttt{kinect\_ros2} et \texttt{depthimage\_to\_laserscan}, avec \texttt{depth\_cleanup} prêt pour un flux nettoyé.\\
-		Radar ultrasonique & Conservé dans le code pour test ou secours lent, mais non retenu comme capteur principal de conduite autonome.\\
-		Exploration & \texttt{m-explore-ros2} référencé par la branche, encore à orchestrer dans un lancement EsiBot complet.\\
-		Passerelle web & Serveur HTTP Python spécifique pour la télémétrie, plus simple que la passerelle WebSocket prévue initialement.\\
+		Motor/servo control & Centralized on the Raspberry\,Pi\,4; the ESP32-CAM is dedicated to the video stream.\\
+		Mapping sensor & Kinect v1 via \texttt{kinect\_ros2} and \texttt{depthimage\_to\_laserscan}, with \texttt{depth\_cleanup} ready for a cleaned stream.\\
+		Ultrasonic radar & Kept in the code for testing or as a slow fallback, but not retained as the primary autonomous driving sensor.\\
+		Exploration & \texttt{m-explore-ros2} referenced by the branch, still to be orchestrated in a complete EsiBot launch.\\
+		Web gateway & A dedicated Python HTTP server for telemetry, simpler than the WebSocket gateway originally planned.\\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-Ces écarts ne dégradent pas la cohérence du produit. Ils clarifient au contraire une
-architecture plus réaliste~: la commande temps réel reste sur le Raspberry\,Pi, tandis que
-la perception et la planification lourdes restent déportables vers le PC opérateur.
+These deviations do not degrade the product's coherence. On the contrary, they clarify a
+more realistic architecture: real-time control stays on the Raspberry\,Pi, while heavy
+perception and planning remain offloadable to the operator PC.
 
-\section{Calibration croisée odométrie--SLAM}
+\section{Cross Odometry--SLAM Calibration}
 \label{sec:lim_calibration}
 
-La limitation la plus profonde n'est pas un module absent, mais l'accord numérique entre
-les topics qui décrivent le même mouvement. Une calibration PWM$\to$RPM correcte ne suffit
-pas si le rayon de roue, l'empattement, la correction de lacet, la fusion \gls{ekf} et les
-seuils de \texttt{slam\_toolbox} ne convergent pas vers le même déplacement réel.
+The deepest limitation is not a missing module, but the numerical agreement between the
+topics that describe the same motion. A correct PWM$\to$RPM calibration is not enough if
+the wheel radius, wheelbase, yaw correction, \gls{ekf} fusion and \texttt{slam\_toolbox}
+thresholds do not converge on the same real-world displacement.
 
 \begin{table}[H]
 	\centering
-	\caption{Paramètres à calibrer conjointement.}
+	\caption{Parameters to be calibrated jointly.}
 	\label{tab:calibration_cross_topics}
 	\begin{tabularx}{\linewidth}{L{3.4cm} L{4.3cm} L{4.5cm}}
 		\toprule
-		\textbf{Chaîne} & \textbf{Paramètres sensibles} & \textbf{Symptôme si mal calibré} \\
+		\textbf{Chain} & \textbf{Sensitive parameters} & \textbf{Symptom if miscalibrated} \\
 		\midrule
-		Roues $\to$ \topic{/odom} & rayon 0.033\,m du calibrateur, \texttt{wheel\_base}=0.16\,m, CPR effectif & distance ou rotation intégrée biaisée \\
-		\gls{urdf}/\gls{tf} & rayon 0.025\,m dans le modèle, empattement visuel 0.14\,m & incohérence entre modèle \gls{rviz}, costmaps et odométrie \\
-		\gls{imu} $\to$ \gls{ekf} & biais gyroscope, seuils de lacet, \texttt{imu0\_config} & robot corrigé trop fort ou pas assez en ligne droite \\
-		\topic{/scan} $\to$ carte & \texttt{minimum\_travel\_distance}, \texttt{minimum\_travel\_heading}, portée Kinect & carte étirée, murs doublés ou boucles fermées instables \\
-		Nav2 $\to$ \topic{/cmd\_vel} & limites \gls{dwb}, vitesse min. 0.2\,m/s, accélérations & oscillations ou trajectoires trop agressives pour les moteurs \\
+		Wheels $\to$ \topic{/odom} & calibrator radius 0.033\,m, \texttt{wheel\_base}=0.16\,m, effective CPR & biased integrated distance or rotation \\
+		\gls{urdf}/\gls{tf} & 0.025\,m radius in the model, visual wheelbase 0.14\,m & inconsistency between the \gls{rviz} model, costmaps and odometry \\
+		\gls{imu} $\to$ \gls{ekf} & gyroscope bias, yaw thresholds, \texttt{imu0\_config} & robot over- or under-corrected when driving straight \\
+		\topic{/scan} $\to$ map & \texttt{minimum\_travel\_distance}, \texttt{minimum\_travel\_heading}, Kinect range & stretched map, duplicated walls or unstable loop closures \\
+		Nav2 $\to$ \topic{/cmd\_vel} & \gls{dwb} limits, min. speed 0.2\,m/s, accelerations & oscillations or trajectories too aggressive for the motors \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-La méthode recommandée est manuelle et basée sur des sacs \ros{} courts~: enregistrer
+The recommended method is manual and based on short \ros{} bags: record
 \topic{/cmd\_vel}, \topic{/odom}, \topic{/odometry/filtered}, \topic{/scan}, \topic{/tf}
-et \topic{/map} sur une ligne droite, une rotation sur place et un carré de référence ;
-comparer la distance réelle, la trajectoire odométrique et la correction
-\topic{map}$\to$\topic{odom} ; ajuster ensuite le rayon, l'empattement et les gains de
-lacet avant de modifier les seuils de \texttt{slam\_toolbox}. Cette étape demande une
-analyse humaine car un même défaut visible sur la carte peut venir d'une roue mal
-étalonnée, d'un lacet \gls{imu} biaisé, d'un scan Kinect bruité ou d'un seuil de mise à
-jour trop élevé.
+and \topic{/map} over a straight line, an in-place rotation, and a reference square;
+compare the actual distance, the odometric trajectory, and the
+\topic{map}$\to$\topic{odom} correction; then adjust the radius, wheelbase, and yaw gains
+before modifying the \texttt{slam\_toolbox} thresholds. This step requires human
+analysis, since the same visible defect on the map can stem from a poorly calibrated
+wheel, a biased \gls{imu} yaw, a noisy Kinect scan, or an excessively high update
+threshold.
 
-\section{Capteurs de perception}
+\section{Perception Sensors}
 \label{sec:lim_sensors}
 
-Le passage du radar ultrasonique au Kinect améliore fortement la conduite autonome, mais
-ne transforme pas le système en LiDAR. Les limites restantes sont connues et calibrables~:
+The switch from the ultrasonic radar to the Kinect greatly improves autonomous driving,
+but does not turn the system into a LiDAR. The remaining limitations are known and
+calibratable:
 
 \begin{itemize}
-	\item \textbf{Radar ultrasonique} --- le balayage actuel est lent
-	      ($\approx$0.07\,Hz), étroit ($60^\circ$) et séquentiel. Il ne fournit pas une
-	      observation assez dense pour une costmap dynamique ; il doit rester un outil de
-	      test ou un secours très local.
-	\item \textbf{Kinect} --- le champ horizontal d'environ $57^\circ$, la portée utile
-	      0.35--4.0\,m et la sensibilité à la lumière infrarouge imposent une rotation active
-	      du robot et un usage intérieur. Ces limites sont acceptables pour le scénario de
-	      démonstration, car le Kinect donne malgré tout une scène de profondeur bien plus
-	      exploitable qu'un unique faisceau ultrasonique.
-	\item \textbf{\texttt{depth\_cleanup}} --- la bibliothèque existe et ses tests protègent
-	      le format métrique, mais le nœud \ros{} d'adaptation n'est pas encore inséré dans
-	      \texttt{mapping.launch.py}. Le gain sur \topic{/scan} doit donc être mesuré avant
-	      soutenance.
+	\item \textbf{Ultrasonic radar} --- the current sweep is slow ($\approx$0.07\,Hz),
+	      narrow ($60^\circ$) and sequential. It does not provide dense enough
+	      observation for a dynamic costmap; it should remain a test tool or a very
+	      local fallback.
+	\item \textbf{Kinect} --- the horizontal field of view of about $57^\circ$, the
+	      usable 0.35--4.0\,m range and sensitivity to infrared light require active
+	      rotation of the robot and indoor use. These limitations are acceptable for the
+	      demonstration scenario, since the Kinect still provides a depth scene far more
+	      usable than a single ultrasonic beam.
+	\item \textbf{\texttt{depth\_cleanup}} --- the library exists and its tests protect
+	      the metric format, but the adapter \ros{} node has not yet been inserted into
+	      \texttt{mapping.launch.py}. The gain on \topic{/scan} must therefore be
+	      measured before the defense.
 \end{itemize}
 
-\section{Sûreté et exploitation}
+\section{Safety and Operations}
 \label{sec:lim_safety}
 
 \begin{itemize}
-	\item \textbf{Téléopération sans bouton d'activation} --- la configuration Xbox accepte
-	      une commande dès que le stick bouge. C'est pratique en essai, mais un mode de
-	      démonstration devrait réintroduire un bouton homme-mort ou un arrêt logiciel clair.
-	\item \textbf{Supervision batterie absente} --- aucun nœud ne publie
-	      \topic{/battery\_state}. Les essais longs doivent donc être surveillés hors logiciel
-	      pour éviter une coupure pendant la navigation.
-	\item \textbf{WiFi ESP32-CAM codé en dur} --- acceptable en prototype local, mais à
-	      remplacer par un mécanisme de configuration si le dépôt devient public ou réutilisé.
+	\item \textbf{Teleoperation without an enable button} --- the Xbox configuration
+	      accepts a command as soon as the stick moves. This is convenient during
+	      testing, but a demonstration mode should reintroduce a dead-man button or a
+	      clear software stop.
+	\item \textbf{No battery supervision} --- no node publishes
+	      \topic{/battery\_state}. Long trials must therefore be monitored outside the
+	      software to avoid a cutout during navigation.
+	\item \textbf{Hardcoded ESP32-CAM WiFi credentials} --- acceptable for a local
+	      prototype, but should be replaced with a configuration mechanism if the
+	      repository becomes public or is reused.
 \end{itemize}
 
-\section{Performance et orchestration}
+\section{Performance and Orchestration}
 \label{sec:lim_perf}
 
-L'exécution simultanée du Kinect, de \texttt{depthimage\_to\_laserscan}, de
-\texttt{slam\_toolbox}, de Nav2 et de l'exploration peut dépasser le confort d'un
-Raspberry\,Pi\,4 seul. La séparation en trois couches reste donc pertinente~: le
-Raspberry\,Pi pilote le matériel et publie \topic{/odom}/\topic{/imu/data\_raw}, tandis que
-le PC opérateur peut porter Kinect, \gls{slam}, Nav2, \gls{rviz} et exploration. Le point à
-valider n'est pas seulement la charge CPU, mais aussi la latence réseau DDS et la
-fraîcheur des \gls{tf}, surtout lorsque l'exploration envoie des objectifs pendant la
-construction de carte.
+Simultaneously running the Kinect, \texttt{depthimage\_to\_laserscan},
+\texttt{slam\_toolbox}, Nav2 and exploration may exceed the comfortable capacity of a
+Raspberry\,Pi\,4 alone. The three-layer separation therefore remains relevant: the
+Raspberry\,Pi drives the hardware and publishes \topic{/odom}/\topic{/imu/data\_raw},
+while the operator PC can carry the Kinect, \gls{slam}, Nav2, \gls{rviz} and
+exploration. The point to validate is not only CPU load, but also DDS network latency
+and \gls{tf} freshness, especially when exploration sends goals while the map is being
+built.
 
-\section{Synthèse}
+\section{Summary}
 \label{sec:lim_synthese}
 
-Le produit reste optimiste dans ses résultats attendus~: l'architecture choisie est
-meilleure que le plan ultrasonique initial pour une navigation autonome crédible. La
-condition principale est de traiter la calibration comme une campagne expérimentale
-complète, pas comme un réglage isolé du moteur gauche ou droit. Une fois cette campagne
-faite, les limites restantes relèvent surtout de la sécurité d'exploitation et de
-l'orchestration des modules haut niveau.
+The product remains optimistic in its expected results: the chosen architecture is
+better than the initial ultrasonic plan for credible autonomous navigation. The main
+condition is to treat calibration as a complete experimental campaign, not as an
+isolated adjustment of the left or right motor. Once this campaign is completed, the
+remaining limitations mainly concern operational safety and the orchestration of the
+high-level modules.

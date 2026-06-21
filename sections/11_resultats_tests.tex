@@ -1,75 +1,77 @@
-\chapter{Résultats Mesurés et Paramètres Système}
+\chapter{Measured Results and System Parameters}
 \label{ch:resultats}
 
-\section{Valeurs de configuration}
+\section{Configuration Values}
 \label{sec:resultats_derived}
 
-Les paramètres de fonctionnement déclarés dans l'architecture dictent le comportement global du robot. Le tableau~\ref{tab:derived_values} regroupe les caractéristiques clés dérivées de la configuration du système.
+The operating parameters declared in the architecture dictate the robot's overall
+behavior. Table~\ref{tab:derived_values} gathers the key characteristics derived from the
+system configuration.
 
 \begin{table}[H]
         \centering
-        \caption{Grandeurs dérivées des paramètres de configuration.}
+        \caption{Quantities derived from the configuration parameters.}
         \label{tab:derived_values}
         \begin{tabularx}{\linewidth}{L{6.4cm} C{2.6cm} L{3.5cm}}
                 \toprule
-                \textbf{Grandeur} & \textbf{Valeur} & \textbf{Calcul / source} \\
+                \textbf{Quantity} & \textbf{Value} & \textbf{Calculation / source} \\
                 \midrule
-                Résolution encodeur effective & 24 imp./tour & \texttt{encoder\_cpr}=12, comptage double front \\
-                Fréquences boucle commande / \gls{imu} / \gls{ekf} & 10 / 50 / 30\,Hz & \texttt{control\_hz}, \texttt{mpu6050\_node}, \texttt{ekf\_odom\_imu.yaml} \\
-                Calibration biais gyroscope & 100 échantillons & \texttt{gyro\_calibration\_samples} \\
-                Cadence \topic{/scan} brute / intégrée \gls{slam} & $\approx$30\,Hz / $\leq$2\,Hz & \texttt{scan\_time}=0.033\,s ; intervalle=0.5\,s \\
-                Cadence radar ultrasonique & $\approx$0.07\,Hz & \texttt{ultrasonic\_radar.yaml} \\
-                Vitesse linéaire/angulaire max. (téléopération) & 0.25\,m/s / 2.4\,rad/s & \texttt{scale\_linear.x}, \texttt{scale\_angular.yaw} \\
-                Vitesse linéaire min./max. (Nav2/\gls{dwb}) & 0.2 / 0.3\,m/s & \texttt{esibot.yaml} \\
-                Tolérance position du but (\texttt{FollowPath}) & 0.05\,m & \texttt{esibot.yaml} \\
-                Résolution carte \gls{slam}/costmaps & 0.05\,m/cellule & cohérent
+                Effective encoder resolution & 24 pulses/rev & \texttt{encoder\_cpr}=12, dual-edge counting \\
+                Control loop / \gls{imu} / \gls{ekf} frequencies & 10 / 50 / 30\,Hz & \texttt{control\_hz}, \texttt{mpu6050\_node}, \texttt{ekf\_odom\_imu.yaml} \\
+                Gyroscope bias calibration & 100 samples & \texttt{gyro\_calibration\_samples} \\
+                Raw \topic{/scan} rate / \gls{slam}-integrated rate & $\approx$30\,Hz / $\leq$2\,Hz & \texttt{scan\_time}=0.033\,s; interval=0.5\,s \\
+                Ultrasonic radar rate & $\approx$0.07\,Hz & \texttt{ultrasonic\_radar.yaml} \\
+                Max. linear/angular velocity (teleoperation) & 0.25\,m/s / 2.4\,rad/s & \texttt{scale\_linear.x}, \texttt{scale\_angular.yaw} \\
+                Min./max. linear velocity (Nav2/\gls{dwb}) & 0.2 / 0.3\,m/s & \texttt{esibot.yaml} \\
+                Goal position tolerance (\texttt{FollowPath}) & 0.05\,m & \texttt{esibot.yaml} \\
+                \gls{slam}/costmap map resolution & 0.05\,m/cell & consistent
 \texttt{slam\_toolbox}/Nav2 \\
                 \bottomrule
         \end{tabularx}
 \end{table}
 
-\begin{notebox}[title={Asymétrie de vitesse}]
-        La vitesse angulaire maximale en téléopération manuelle (2.4\,rad/s) est
-        établie plus haute que la vitesse autonome pour garantir une forte réactivité humaine.
+\begin{notebox}[title={Velocity Asymmetry}]
+        The maximum angular velocity in manual teleoperation (2.4\,rad/s) is set higher
+        than the autonomous speed to ensure strong human responsiveness.
 \end{notebox}
 
-\section{Plan de Validation}
+\section{Validation Plan}
 \label{sec:resultats_tests}
 
-La validation physique de la plateforme repose sur les scénarios du
-tableau~\ref{tab:test_plan}, qui vérifient la fiabilité de chaque couche.
+Physical validation of the platform relies on the scenarios in
+Table~\ref{tab:test_plan}, which verify the reliability of each layer.
 
 \begin{table}[H]
         \centering
-        \caption{Plan de validation terrain.}
+        \caption{Field validation plan.}
         \label{tab:test_plan}
         \begin{tabularx}{\linewidth}{L{3.4cm} L{5.4cm} L{3.6cm}}
                 \toprule
-                \textbf{Scénario} & \textbf{Procédure} & \textbf{Critère attendu} \\
+                \textbf{Scenario} & \textbf{Procedure} & \textbf{Expected criterion} \\
                 \midrule
-                Démarrage bas-niveau & Lancer moteurs, MPU6050, \gls{ekf} et dashboard & topics \topic{/odom}, \topic{/imu/data\_raw}, \topic{/odometry/filtered} stables \\
-                Cohérence odométrique & Parcourir 2\,m en ligne droite après calibration PWM & dérive latérale mesurée et reproductible \\
-                Pipeline Kinect & Comparer \topic{/scan} à des distances murales connues & erreur de portée bornée et sans trous persistants \\
-                Cartographie & Construire une carte Kinect d'une zone $3\times3$\,m & murs continus, fermeture de boucle plausible \\
-                Navigation & Envoyer trois buts Nav2 successifs sur carte sauvegardée & arrivée sans collision et arrêt contrôlé \\
-                Exploration & Initialiser \texttt{m-explore-ros2} avec SLAM/Nav2 actifs & objectifs frontière émis sans conflit \gls{tf} \\
+                Low-level startup & Start motors, MPU6050, \gls{ekf} and dashboard & \topic{/odom}, \topic{/imu/data\_raw}, \topic{/odometry/filtered} topics stable \\
+                Odometric consistency & Travel 2\,m in a straight line after PWM calibration & measured and reproducible lateral drift \\
+                Kinect pipeline & Compare \topic{/scan} to known wall distances & bounded range error with no persistent gaps \\
+                Mapping & Build a Kinect map of a $3\times3$\,m area & continuous walls, plausible loop closure \\
+                Navigation & Send three successive Nav2 goals on a saved map & arrival without collision and controlled stop \\
+                Exploration & Initialize \texttt{m-explore-ros2} with SLAM/Nav2 active & frontier goals issued without \gls{tf} conflict \\
                 \bottomrule
         \end{tabularx}
 \end{table}
 
 \begin{table}[H]
         \centering
-        \caption{État consolidé des validations dans le rapport.}
+        \caption{Consolidated validation status in the report.}
         \label{tab:metrics_consolidated}
         \begin{tabularx}{\linewidth}{L{4cm} L{4cm} L{4cm}}
                 \toprule
-                \textbf{Élément} & \textbf{État actuel} & \textbf{Mesure restante} \\
+                \textbf{Item} & \textbf{Current status} & \textbf{Remaining measurement} \\
                 \midrule
-                Commande moteur & implémentée et calibrable & courbe PWM/RPM finale sur robot assemblé \\
-                \gls{ekf} odom+\gls{imu} & configuré conservativement & dérive avant/après fusion sur trajectoire répétée \\
-                Kinect $\to$ \topic{/scan} & lancé par \texttt{mapping.launch.py} & comparaison raw/cleaned depth après intégration \texttt{depth\_cleanup} \\
-                Nav2 & configuration complète & essais multi-buts sur carte EsiBot réelle \\
-                Exploration & dépendance ajoutée & orchestration par launch et test de frontières \\
+                Motor control & implemented and calibratable & final PWM/RPM curve on the assembled robot \\
+                \gls{ekf} odom+\gls{imu} & configured conservatively & drift before/after fusion on a repeated trajectory \\
+                Kinect $\to$ \topic{/scan} & launched by \texttt{mapping.launch.py} & raw/cleaned depth comparison after \texttt{depth\_cleanup} integration \\
+                Nav2 & complete configuration & multi-goal trials on the actual EsiBot map \\
+                Exploration & dependency added & launch orchestration and frontier testing \\
                 \bottomrule
         \end{tabularx}
 \end{table}

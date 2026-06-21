@@ -1,86 +1,89 @@
-\chapter{Architecture Globale du Système}
+\chapter{Overall System Architecture}
 \label{ch:archi_globale}
 
-\section{Vue d'ensemble de l'architecture}
+\section{Architecture Overview}
 \label{sec:archi_overview}
 
-L'architecture matérielle du robot est organisée en trois couches de traitement et une couche d'alimentation
-dédiée. La figure~\ref{fig:global_archi} illustre le schéma d'architecture global.
+The robot's hardware architecture is organized into three processing layers and a
+dedicated power layer. Figure~\ref{fig:global_archi} illustrates the overall architecture
+diagram.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.62\linewidth]{images/Global_Archi.png}
-	\caption{Architecture globale d'\esibot{}. Le capteur de cartographie principal est le Kinect (RGB-D) et les moteurs sont pilotés par le Raspberry\,Pi\,4.}
+	\caption{Overall \esibot{} architecture. The primary mapping sensor is the Kinect (RGB-D) and the motors are driven by the Raspberry\,Pi\,4.}
 	\label{fig:global_archi}
 \end{figure}
 
-Les composants majeurs sont structurés de la façon suivante~:
+The major components are structured as follows:
 
 \begin{enumerate}
-	\item \textbf{Serveur Caméra (ESP32-CAM)~:} Expose le flux vidéo \gls{mjpeg} \textit{via} HTTP sur le réseau WiFi local.
-	\item \textbf{Contrôle Bas-niveau (Raspberry\,Pi\,4)~:} Pilote directement le pont en H (L298N) et la lecture odométrique des moteurs via le nœud \texttt{motor\_bridge\_node}.
-	\item \textbf{Capteur principal de cartographie (Kinect)~:} Fournit l'image de profondeur, nettoyable par \texttt{depth\_cleanup} puis convertie en balayage laser via \texttt{depthimage\_to\_laserscan} pour alimenter le système \gls{slam}.
-	\item \textbf{Centrale inertielle (\gls{imu} MPU6050)~:} Couplée à l'odométrie via un filtre \gls{ekf} pour stabiliser le cap du robot et assurer un positionnement fiable pour Nav2.
-	\item \textbf{Exploration autonome~:} Le dépôt \texttt{working\_build} référence \texttt{m-explore-ros2}, prévu au-dessus de \topic{/map} et de Nav2 pour générer automatiquement des objectifs vers les frontières inconnues.
+	\item \textbf{Camera Server (ESP32-CAM):} Exposes the \gls{mjpeg} video stream \textit{via} HTTP over the local WiFi network.
+	\item \textbf{Low-Level Control (Raspberry\,Pi\,4):} Directly drives the H-bridge (L298N) and reads motor odometry via the \texttt{motor\_bridge\_node} node.
+	\item \textbf{Primary Mapping Sensor (Kinect):} Provides the depth image, which can be cleaned by \texttt{depth\_cleanup} and then converted into a laser scan via \texttt{depthimage\_to\_laserscan} to feed the \gls{slam} system.
+	\item \textbf{Inertial Measurement Unit (\gls{imu} MPU6050):} Coupled with odometry via an \gls{ekf} filter to stabilize the robot's heading and ensure reliable positioning for Nav2.
+	\item \textbf{Autonomous Exploration:} The \texttt{working\_build} repository references \texttt{m-explore-ros2}, intended to sit on top of \topic{/map} and Nav2 to automatically generate goals toward unknown frontiers.
 \end{enumerate}
 
-\section{Découpage en trois couches}
+\section{Three-Layer Breakdown}
 \label{sec:archi_layers}
 
-\paragraph{Couche 1 --- Capteurs (Sensor Layer).}
-Trois sources de données indépendantes alimentent la couche de traitement~: l'ESP32-CAM
-(flux vidéo brut \gls{mjpeg}), le Kinect (image de profondeur et image couleur RGB), et les
-encodeurs de roue (comptage d'impulsions pour l'odométrie). Chaque source utilise une
-interface physique distincte~: \gls{wifi} pour la caméra, USB pour le Kinect, \gls{gpio}
-à interruption pour les encodeurs.
+\paragraph{Layer 1 --- Sensor Layer.}
+Three independent data sources feed the processing layer: the ESP32-CAM (raw \gls{mjpeg}
+video stream), the Kinect (depth image and RGB color image), and the wheel encoders
+(pulse counting for odometry). Each source uses a distinct physical interface:
+\gls{wifi} for the camera, USB for the Kinect, interrupt-driven \gls{gpio} for the
+encoders.
 
-\paragraph{Couche 2 --- Traitement bas-niveau (Raspberry\,Pi\,4).}
-Le Raspberry\,Pi\,4 héberge l'interface matérielle \ros{}~: il lit les capteurs
-embarqués (encodeurs, \gls{imu}), exécute la boucle d'asservissement de vitesse \gls{pid}
-des deux moteurs, publie l'odométrie et les topics de télémétrie, et reçoit les commandes
-de vitesse \topic{/cmd\_vel}.
+\paragraph{Layer 2 --- Low-Level Processing (Raspberry\,Pi\,4).}
+The Raspberry\,Pi\,4 hosts the \ros{} hardware interface: it reads the onboard sensors
+(encoders, \gls{imu}), runs the \gls{pid} velocity control loop for both motors,
+publishes odometry and telemetry topics, and receives velocity commands on
+\topic{/cmd\_vel}.
 
-\paragraph{Couche 3 --- Traitement haut-niveau (PC opérateur).}
-Le schéma officiel positionne la vision par ordinateur (OpenCV/\texttt{depth\_cleanup}),
-\pkg{slam\_toolbox}, \texttt{m-explore-ros2} et la pile Nav2 sur un PC principal distinct, communiquant avec le Raspberry\,Pi\,4 via le réseau
-\ros{} (DDS, topics/\gls{tf}). Cette séparation logique est rendue possible par la
-nature distribuée de \ros{}~: les arguments de lancement
-(\texttt{start\_base}, \texttt{start\_kinect}, \texttt{start\_slam}, \texttt{start\_rviz})
-du fichier \texttt{mapping.launch.py} sont indépendamment activables, ce qui permet
-d'exécuter les nœuds lourds (\gls{slam}, Nav2) sur une machine plus puissante que le
-Raspberry\,Pi\,4 tout en laissant ce dernier dédié à l'interfaçage matériel temps-réel.
+\paragraph{Layer 3 --- High-Level Processing (Operator PC).}
+The official diagram places computer vision (OpenCV/\texttt{depth\_cleanup}),
+\pkg{slam\_toolbox}, \texttt{m-explore-ros2} and the Nav2 stack on a separate main PC,
+communicating with the Raspberry\,Pi\,4 over the \ros{} network (DDS, topics/\gls{tf}).
+This logical separation is made possible by the distributed nature of \ros{}: the launch
+arguments (\texttt{start\_base}, \texttt{start\_kinect}, \texttt{start\_slam},
+\texttt{start\_rviz}) of the \texttt{mapping.launch.py} file can be independently
+enabled, which allows running the heavy nodes (\gls{slam}, Nav2) on a machine more
+powerful than the Raspberry\,Pi\,4, while leaving the latter dedicated to real-time
+hardware interfacing.
 
-\paragraph{Couche transverse --- Alimentation.}
-Une batterie et une distribution de puissance régulée alimentent indépendamment la couche
-actionneurs (moteurs via L298N) et la couche de calcul (Raspberry\,Pi\,4, ESP32-CAM), comme
-indiqué sur la figure~\ref{fig:global_archi}.
+\paragraph{Cross-Cutting Layer --- Power.}
+A battery and a regulated power distribution independently supply the actuator layer
+(motors via L298N) and the compute layer (Raspberry\,Pi\,4, ESP32-CAM), as shown in
+Figure~\ref{fig:global_archi}.
 
-\section{Graphe des nœuds et topics \ros{}}
+\section{\ros{} Node and Topic Graph}
 \label{sec:archi_nodes}
 
-La figure~\ref{fig:topics_stream_spec} expose le graphe simplifié des nœuds et topics implémentés
-dans le système. Le traitement et la fusion de données respectent les standards \ros{},
-reliant les interfaces matérielles à la planification haut-niveau.
+Figure~\ref{fig:topics_stream_spec} shows the simplified graph of nodes and topics
+implemented in the system. Processing and data fusion follow \ros{} standards, linking
+the hardware interfaces to high-level planning.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.78\linewidth]{images/Kinect_Stream.png}
-	\caption{Graphe simplifié des nœuds et topics \ros{}. Couleurs~: vert = pilotes, gris-bleu = estimation d'état, bleu = planification/cartographie.}
+	\caption{Simplified \ros{} node and topic graph. Colors: green = drivers, blue-gray = state estimation, blue = planning/mapping.}
 	\label{fig:topics_stream_spec}
 \end{figure}
 
-\section{Synthèse des topics principaux}
+\section{Summary of Main Topics}
 \label{sec:archi_topics_table}
 
-Le tableau~\ref{tab:topics_summary} résume les topics \ros{} de communication. La liste exhaustive est fournie en annexe~\ref{app:topics}.
+Table~\ref{tab:topics_summary} summarizes the \ros{} communication topics. The
+exhaustive list is provided in Appendix~\ref{app:topics}.
 
 \begin{table}[H]
 	\centering
-	\caption{Topics \ros{} principaux.}
+	\caption{Main \ros{} topics.}
 	\label{tab:topics_summary}
 	\begin{tabularx}{\linewidth}{L{3.4cm} L{3.4cm} L{3.4cm} L{3.1cm}}
 		\toprule
-		\textbf{Topic} & \textbf{Type} & \textbf{Publié par} & \textbf{Souscrit par} \\
+		\textbf{Topic} & \textbf{Type} & \textbf{Published by} & \textbf{Subscribed by} \\
 		\midrule
 		\topic{/cmd\_vel} & geometry\_msgs/Twist & teleop\_twist\_joy, Nav2 & motor\_bridge\_node \\
 		\topic{/odom} & nav\_msgs/Odometry & motor\_bridge\_node & ekf\_filter\_node \\
@@ -90,7 +93,7 @@ Le tableau~\ref{tab:topics_summary} résume les topics \ros{} de communication. 
 		\topic{/map} & nav\_msgs/OccupancyGrid & slam\_toolbox / map\_server & Nav2, \gls{rviz}, m-explore \\
 		\topic{/tf}, \topic{/tf\_static} & tf2\_msgs/TFMessage & robot\_state\_publisher, ekf, slam\_toolbox & Nav2, \gls{rviz} \\
 		\topic{/joy} & sensor\_msgs/Joy & joy\_node & teleop\_twist\_joy\_node, dashboard \\
-		\topic{/esp32/camera/image\_raw} & sensor\_msgs/Image & esp32\_camera\_bridge & (consommateur optionnel) \\
+		\topic{/esp32/camera/image\_raw} & sensor\_msgs/Image & esp32\_camera\_bridge & (optional consumer) \\
 		\bottomrule
 	\end{tabularx}
 \end{table}

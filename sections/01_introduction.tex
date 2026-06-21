@@ -1,42 +1,41 @@
 \chapter{Introduction}
 \label{ch:intro}
 
-\section{Contexte}
+\section{Context}
 \label{sec:intro_contexte}
 
-Le projet \esibot{} s'inscrit dans le cadre d'un module intégrateur IoT / Robotique
-Mobile de l'École Nationale Supérieure d'Informatique (ESI Alger). L'objectif de ce projet
-est de concevoir, fabriquer et programmer un robot mobile autonome capable de
-cartographier un environnement inconnu et de s'y déplacer vers des
-points objectifs définis. Ce projet s'inspire de l'architecture du \textbf{TurtleBot3 Burger},
-en substituant ses composants matériels propriétaires par des solutions accessibles et à bas coût~: 
-microcontrôleur \gls{mcu} ESP32-CAM, Raspberry Pi 4, capteur de profondeur Kinect, et impression 3D pour le châssis.
+The \esibot{} project is part of an IoT / Mobile Robotics integrative module at the
+École Nationale Supérieure d'Informatique (ESI Algiers). The objective of this project
+is to design, build and program an autonomous mobile robot capable of mapping an unknown
+environment and navigating within it to defined goal points. This project is inspired by
+the architecture of the \textbf{TurtleBot3 Burger}, replacing its proprietary hardware
+components with accessible, low-cost solutions: an ESP32-CAM \gls{mcu} microcontroller, a
+Raspberry Pi 4, a Kinect depth sensor, and 3D printing for the chassis.
 
-\section{Objectifs du Rapport}
+\section{Report Objectives}
 \label{sec:intro_objectifs}
 
-Ce document détaille l'architecture matérielle, logicielle et mécanique du système. Il met 
-en évidence les choix de conception finaux ayant abouti à la réalisation du robot, notamment
-l'intégration de la commande moteur sur le Raspberry\,Pi\,4 et l'utilisation du capteur Kinect 
-pour la cartographie.
+This document details the hardware, software and mechanical architecture of the system.
+It highlights the final design choices that led to the robot's implementation, in
+particular the integration of motor control on the Raspberry\,Pi\,4 and the use of the
+Kinect sensor for mapping.
 
-Le rapport couvre~:
+The report covers:
 \begin{itemize}
-	\item L'architecture complète (composants mécaniques, électroniques, et logiciels) ;
-	\item L'interfaçage des capteurs et les flux de communication sous \ros{} ;
-	\item Les paramètres de configuration et la fusion sensorielle ;
-	\item L'évaluation des performances et les limitations du système.
+	\item The complete architecture (mechanical, electronic, and software components);
+	\item Sensor interfacing and communication flows under \ros{};
+	\item Configuration parameters and sensor fusion;
+	\item Performance evaluation and the system's limitations.
 \end{itemize}
 
-\section{Organisation du Rapport}
+\section{Report Organization}
 \label{sec:intro_organisation}
 
-Ce rapport est structuré de la façon suivante :
-Le chapitre~\ref{ch:archi_globale} détaille l'architecture globale. Le
-chapitre~\ref{ch:mecanique} couvre la conception mécanique et électronique. Le
-chapitre~\ref{ch:commande_bas_niveau} documente la commande bas-niveau et la fusion de
-données. L'approche de cartographie, navigation et exploration est traitée au
-chapitre~\ref{ch:slam}. Le chapitre~\ref{ch:ihm} présente l'interface utilisateur et les
-procédures de déploiement. Enfin, les résultats d'intégration, l'analyse des limitations
-et le bilan du projet font l'objet des trois derniers chapitres
+This report is structured as follows:
+Chapter~\ref{ch:archi_globale} details the overall architecture. Chapter~\ref{ch:mecanique}
+covers the mechanical and electronic design. Chapter~\ref{ch:commande_bas_niveau} documents
+low-level control and data fusion. The mapping, navigation and exploration approach is
+covered in Chapter~\ref{ch:slam}. Chapter~\ref{ch:ihm} presents the user interface and
+deployment procedures. Finally, the integration results, limitations analysis, and project
+outlook are addressed in the last three chapters
 (\ref{ch:resultats}, \ref{ch:limitations}, \ref{ch:bilan}).

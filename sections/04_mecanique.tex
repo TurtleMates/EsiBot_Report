@@ -1,148 +1,151 @@
-\chapter{Conception Mécanique et Électronique}
+\chapter{Mechanical and Electronic Design}
 \label{ch:mecanique}
 
-\section{Architecture différentielle}
+\section{Differential Architecture}
 \label{sec:meca_diff}
 
-\esibot{} adopte une architecture \emph{differential drive}~: deux roues motrices
-indépendantes plus une roue folle assurant la stabilité statique, la direction résultant
-uniquement de la différence de vitesse entre les deux roues. Les fichiers \gls{cad}/STL du
-châssis constituent un livrable séparé (Livrable~1) non inclus dans le code analysé~; ce
-chapitre s'appuie donc sur le modèle \gls{urdf} (\texttt{esibot\_description}), source de
-vérité utilisée par \ros{} pour les transformées et les costmaps, complété par les
-constantes électroniques relevées dans le code de commande.
+\esibot{} adopts a \emph{differential drive} architecture: two independent driven wheels
+plus a caster wheel ensuring static stability, with steering resulting solely from the
+speed difference between the two wheels. The chassis \gls{cad}/STL files form a separate
+deliverable (Deliverable~1) not included in the analyzed code; this chapter therefore
+relies on the \gls{urdf} model (\texttt{esibot\_description}), the source of truth used
+by \ros{} for transforms and costmaps, supplemented by the electronic constants found in
+the control code.
 
-\section{Modèle géométrique}
+\section{Geometric Model}
 \label{sec:meca_urdf}
 
 \begin{table}[H]
 	\centering
-	\caption{Paramètres géométriques et inertiels déclarés dans le modèle \gls{urdf}.}
+	\caption{Geometric and inertial parameters declared in the \gls{urdf} model.}
 	\label{tab:urdf_geom}
 	\begin{tabularx}{\linewidth}{L{5cm} C{3.2cm} L{5cm}}
 		\toprule
-		\textbf{Élément} & \textbf{Valeur} & \textbf{Remarque} \\
+		\textbf{Element} & \textbf{Value} & \textbf{Note} \\
 		\midrule
-		Châssis (\texttt{base\_link}) & 0.21 $\times$ 0.14 $\times$ 0.03\,m & masse 2.0\,kg \\
-		Rayon de roue (\texttt{wheel\_radius}) & 0.025\,m & largeur 0.027\,m, masse 0.2\,kg/roue \\
-		Empattement (\texttt{wheel\_y} $\times 2$) & 0.14\,m & distance latérale entre roues \\
-		Module caméra (\texttt{camera\_link}) & 0.073 $\times$ 0.278 $\times$ 0.073\,m & masse 0.56\,kg, $x=-0.105$\,m (arrière) \\
+		Chassis (\texttt{base\_link}) & 0.21 $\times$ 0.14 $\times$ 0.03\,m & mass 2.0\,kg \\
+		Wheel radius (\texttt{wheel\_radius}) & 0.025\,m & width 0.027\,m, mass 0.2\,kg/wheel \\
+		Wheelbase (\texttt{wheel\_y} $\times 2$) & 0.14\,m & lateral distance between wheels \\
+		Camera module (\texttt{camera\_link}) & 0.073 $\times$ 0.278 $\times$ 0.073\,m & mass 0.56\,kg, $x=-0.105$\,m (rear) \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-Le modèle déclare les repères optiques caméra (\texttt{camera\_depth\_frame},
-\texttt{camera\_rgb\_optical\_frame}, rotation $-\pi/2$) ; un
-\texttt{static\_transform\_publisher} relie \texttt{camera\_depth\_frame} au repère natif
-du pilote Kinect \texttt{kinect\_depth} par une transformée identité.
+The model declares the camera optical frames (\texttt{camera\_depth\_frame},
+\texttt{camera\_rgb\_optical\_frame}, $-\pi/2$ rotation); a
+\texttt{static\_transform\_publisher} links \texttt{camera\_depth\_frame} to the Kinect
+driver's native frame \texttt{kinect\_depth} via an identity transform.
 
 \begin{warnbox}
-	Une révision des paramètres géométriques (notamment le rayon des roues et l'empattement) est nécessaire pour garantir une parfaite cohérence entre le modèle \gls{urdf} et le code de commande bas-niveau, afin d'optimiser la précision de l'odométrie.
+	A revision of the geometric parameters (in particular the wheel radius and the
+	wheelbase) is needed to guarantee full consistency between the \gls{urdf} model and
+	the low-level control code, in order to optimize odometry accuracy.
 \end{warnbox}
 
-\section{Cinématique différentielle et odométrie}
+\section{Differential Kinematics and Odometry}
 \label{sec:meca_kinematics}
 
-La conversion \topic{/cmd\_vel} $\to$ vitesses de roue, implémentée dans
-\texttt{motor\_bridge\_node.py} (\texttt{twist\_to\_wheel\_\allowbreak commands}) et répliquée dans le
-tableau de bord (\texttt{imu\_web\_dashboard.py}), suit le modèle classique~:
+The \topic{/cmd\_vel} $\to$ wheel speed conversion, implemented in
+\texttt{motor\_bridge\_node.py} (\texttt{twist\_to\_wheel\_\allowbreak commands}) and
+replicated in the dashboard (\texttt{imu\_web\_dashboard.py}), follows the classic
+model:
 
 \begin{equation}
-	v_{\text{g}} = v - \omega \cdot \tfrac{L}{2}, \quad
-	v_{\text{d}} = v + \omega \cdot \tfrac{L}{2}
+	v_{\text{l}} = v - \omega \cdot \tfrac{L}{2}, \quad
+	v_{\text{r}} = v + \omega \cdot \tfrac{L}{2}
 	\label{eq:diff_drive}
 \end{equation}
 
-et inversement pour la reconstruction d'odométrie~:
-$v = (v_{\text{g}}+v_{\text{d}})/2$, $\omega = (v_{\text{d}}-v_{\text{g}})/L$
-(équation~\ref{eq:diff_drive_inverse}), où $L$ est l'empattement.
+and conversely for odometry reconstruction:
+$v = (v_{\text{l}}+v_{\text{r}})/2$, $\omega = (v_{\text{r}}-v_{\text{l}})/L$
+(equation~\ref{eq:diff_drive_inverse}), where $L$ is the wheelbase.
 \begin{equation}
-	v = \frac{v_{\text{g}} + v_{\text{d}}}{2}, \qquad
-	\omega = \frac{v_{\text{d}} - v_{\text{g}}}{L}
+	v = \frac{v_{\text{l}} + v_{\text{r}}}{2}, \qquad
+	\omega = \frac{v_{\text{r}} - v_{\text{l}}}{L}
 	\label{eq:diff_drive_inverse}
 \end{equation}
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.5\linewidth]{images/diff_drive_diagram.png}
-	\caption{Modèle cinématique du robot différentiel \esibot{} (vue de dessus).}
+	\caption{Kinematic model of the \esibot{} differential robot (top view).}
 	\label{fig:diff_drive_diagram}
 \end{figure}
 
-Chaque roue est équipée d'un encodeur compté par interruption \gls{gpio}, anti-rebond
-logiciel 2\,ms. Le paramètre \texttt{encoder\_cpr} (12 par défaut) est doublé par comptage
-sur les deux fronts (\texttt{encoder\_count\_both\_\allowbreak edges=True}), donnant
-\textbf{24 impulsions/tour}. La vitesse de rotation mesurée est calculée à chaque cycle de
-contrôle (\texttt{control\_hz}, 10\,Hz par défaut) par~:
+Each wheel is fitted with an encoder counted via \gls{gpio} interrupt, with 2\,ms
+software debouncing. The \texttt{encoder\_cpr} parameter (12 by default) is doubled by
+counting on both edges (\texttt{encoder\_count\_both\_\allowbreak edges=True}), giving
+\textbf{24 pulses/revolution}. The measured rotation speed is computed at each control
+cycle (\texttt{control\_hz}, 10\,Hz by default) using:
 \begin{equation}
-	\text{RPM}_{\text{mesuré}} = \frac{N_{\text{impulsions}}}{\text{CPR}_{\text{effectif}}} \times \frac{60}{\Delta t}
+	\text{RPM}_{\text{measured}} = \frac{N_{\text{pulses}}}{\text{CPR}_{\text{effective}}} \times \frac{60}{\Delta t}
 	\label{eq:rpm_measure}
 \end{equation}
-soit $360^\circ/24=15^\circ$ par impulsion et, avec le rayon de 0.033\,m du calibrateur,
-$\approx$\textbf{8.6\,mm}/impulsion ($2\pi\times0.033/24$).
+i.e. $360^\circ/24=15^\circ$ per pulse, and, with the calibrator's 0.033\,m radius,
+$\approx$\textbf{8.6\,mm}/pulse ($2\pi\times0.033/24$).
 
-\section{Câblage électronique}
+\section{Electronic Wiring}
 \label{ch:electronique}
 \label{sec:elec_topology}
 
-Le cahier des charges (Livrable~2) exige un schéma Fritzing/KiCad, absent de l'archive
-fournie~; le tableau~\ref{tab:gpio_pinout} a donc été \textbf{reconstruit par
-rétro-ingénierie} depuis les constantes \gls{gpio} du code Python. À la différence du
-cahier des charges, qui prévoyait que l'ESP32-CAM pilote le pont en H, le servo et le
-HC-SR04, l'implémentation réelle concentre toute l'électronique temps-réel sur les broches
-\gls{gpio} du Raspberry\,Pi\,4.
+The specification (Deliverable~2) requires a Fritzing/KiCad schematic, which is absent
+from the provided archive; Table~\ref{tab:gpio_pinout} was therefore \textbf{reconstructed
+by reverse engineering} from the \gls{gpio} constants in the Python code. Unlike the
+specification, which planned for the ESP32-CAM to drive the H-bridge, the servo and the
+HC-SR04, the actual implementation concentrates all real-time electronics on the
+\gls{gpio} pins of the Raspberry\,Pi\,4.
 
 \begin{table}[H]
 	\centering
-	\caption{Broches \gls{gpio} du Raspberry\,Pi\,4 (BCM), reconstruites depuis le code source.}
+	\caption{Raspberry\,Pi\,4 \gls{gpio} pins (BCM), reconstructed from the source code.}
 	\label{tab:gpio_pinout}
 	\begin{tabularx}{\linewidth}{L{3.8cm} C{1.6cm} L{6.8cm}}
 		\toprule
-		\textbf{Fonction} & \textbf{GPIO} & \textbf{Source / nœud} \\
+		\textbf{Function} & \textbf{GPIO} & \textbf{Source / node} \\
 		\midrule
-		ENA / IN1 / IN2 (moteur g.) & 12 / 5 / 6 & \texttt{motor\_bridge\_node}, \texttt{motor\_calibrator} \\
-		Encodeur gauche & 26 & \texttt{motor\_bridge\_node} (\texttt{pin\_left\_encoder}) \\
-		ENB / IN3 / IN4 (moteur d.) & 13 / 21 / 20 & \texttt{motor\_bridge\_node}, \texttt{motor\_calibrator} \\
-		Encodeur droit & 27 & \texttt{motor\_bridge\_node} (\texttt{pin\_right\_encoder}) \\
+		ENA / IN1 / IN2 (left motor) & 12 / 5 / 6 & \texttt{motor\_bridge\_node}, \texttt{motor\_calibrator} \\
+		Left encoder & 26 & \texttt{motor\_bridge\_node} (\texttt{pin\_left\_encoder}) \\
+		ENB / IN3 / IN4 (right motor) & 13 / 21 / 20 & \texttt{motor\_bridge\_node}, \texttt{motor\_calibrator} \\
+		Right encoder & 27 & \texttt{motor\_bridge\_node} (\texttt{pin\_right\_encoder}) \\
 		\gls{i2c} SDA/SCL (bus 1) & 2 / 3 & \texttt{mpu6050\_node} (MPU6050 @ 0x68) \\
-		HC-SR04 SIG (trig/écho) & 23 & \texttt{ultrasonic\_scan\_node} (déprécié) \\
-		Servo SG90 radar & 18 & \texttt{ultrasonic\_scan\_node} (déprécié) \\
+		HC-SR04 SIG (trig/echo) & 23 & \texttt{ultrasonic\_scan\_node} (deprecated) \\
+		SG90 radar servo & 18 & \texttt{ultrasonic\_scan\_node} (deprecated) \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-Dans la branche \texttt{working\_build}, le câblage logiciel du calibrateur et celui du
-nœud de production sont cohérents~: les deux utilisent les broches BCM~26 et BCM~27 pour
-les encodeurs gauche et droit. La calibration PWM$\to$RPM peut donc alimenter directement
-\texttt{pwm\_mapper.py}, sous réserve que le rayon de roue et l'empattement utilisés par
-l'odométrie soient contrôlés expérimentalement (voir chapitre~\ref{ch:limitations}).
+In the \texttt{working\_build} branch, the calibrator's software wiring and that of the
+production node are consistent: both use BCM pins~26 and~27 for the left and right
+encoders. The PWM$\to$RPM calibration can therefore directly feed
+\texttt{pwm\_mapper.py}, provided the wheel radius and wheelbase used by the odometry are
+experimentally verified (see Chapter~\ref{ch:limitations}).
 
-Le pilotage moteur utilise un double pont en H \textbf{L298N} en PWM logiciel
-(\texttt{RPi.GPIO}, 500\,Hz), rapport cyclique borné à $[15\,\%,100\,\%]$
-(\texttt{min/max\_duty\_cycle}) pour compenser la zone morte mécanique. Le MPU6050
-(\gls{i2c} bus~1, adresse \texttt{0x68}) est configuré au démarrage (réveil, diviseur
-d'échantillonnage \texttt{SMPLRT\_DIV=0x07}, filtre passe-bas \texttt{DLPF\_CFG=0x03},
-$\pm2g$/$\pm250^\circ$/s) et publie à \textbf{50\,Hz}. Le Kinect (v1, ère Xbox\,360), capteur de
-cartographie principal, est relié en \textbf{USB} (non \gls{gpio}) et piloté par le paquet
-communautaire \texttt{kinect\_ros2} (\texttt{libfreenect}).
+Motor driving uses a dual \textbf{L298N} H-bridge with software PWM (\texttt{RPi.GPIO},
+500\,Hz), with duty cycle bounded to $[15\,\%,100\,\%]$
+(\texttt{min/max\_duty\_cycle}) to compensate for mechanical dead zone. The MPU6050
+(\gls{i2c} bus~1, address \texttt{0x68}) is configured at startup (wake-up, sample-rate
+divider \texttt{SMPLRT\_DIV=0x07}, low-pass filter \texttt{DLPF\_CFG=0x03},
+$\pm2g$/$\pm250^\circ$/s) and publishes at \textbf{50\,Hz}. The Kinect (v1, Xbox\,360
+era), the primary mapping sensor, is connected via \textbf{USB} (not \gls{gpio}) and
+driven by the community package \texttt{kinect\_ros2} (\texttt{libfreenect}).
 
-\section{Serveur de caméra (ESP32-CAM)}
+\section{Camera Server (ESP32-CAM)}
 \label{sec:elec_esp32cam}
 
-Le module ESP32-CAM (\texttt{AI\_THINKER}) sert exclusivement de serveur vidéo \gls{mjpeg}
-\gls{wifi}~: le firmware \texttt{CameraServerArduinoIDE.ino} initialise le capteur OV2640
-(\texttt{UXGA} si PSRAM, sinon \texttt{SVGA}) et expose le flux sur \texttt{/stream}.
-Aucune broche \gls{gpio} de l'ESP32-CAM ne pilote d'actionneur --- l'essentiel de ses
-broches étant réservé à l'interface caméra parallèle --- une contrainte matérielle
-probablement à l'origine du report de la commande moteur vers le Raspberry\,Pi\,4. Les
-identifiants \gls{wifi} (SSID/mot de passe) sont \textbf{codés en dur} dans le firmware,
-sans portail captif ni provisioning (chapitre~\ref{ch:limitations}).
+The ESP32-CAM module (\texttt{AI\_THINKER}) is used exclusively as a \gls{wifi}
+\gls{mjpeg} video server: the \texttt{CameraServerArduinoIDE.ino} firmware initializes
+the OV2640 sensor (\texttt{UXGA} if PSRAM is present, otherwise \texttt{SVGA}) and
+exposes the stream on \texttt{/stream}. No \gls{gpio} pin of the ESP32-CAM drives an
+actuator --- most of its pins being reserved for the parallel camera interface --- a
+hardware constraint likely behind the move of motor control to the Raspberry\,Pi\,4. The
+\gls{wifi} credentials (SSID/password) are \textbf{hardcoded} in the firmware, with no
+captive portal or provisioning (Chapter~\ref{ch:limitations}).
 
-\section{Alimentation}
+\section{Power Supply}
 \label{sec:elec_power}
 
-Le schéma d'architecture (figure~\ref{fig:global_archi}) identifie un bloc « Power
-Management » alimentant séparément la couche actionneurs (L298N) et la couche de calcul
-(Raspberry\,Pi\,4, ESP32-CAM). Aucun nœud de supervision de batterie
-(\topic{/battery\_state}, prévu au cahier des charges) n'a été retrouvé dans le code~: la
-télémétrie de batterie n'est, à ce stade, pas exposée par le logiciel embarqué.
+The architecture diagram (Figure~\ref{fig:global_archi}) identifies a "Power
+Management" block separately supplying the actuator layer (L298N) and the compute layer
+(Raspberry\,Pi\,4, ESP32-CAM). No battery supervision node
+(\topic{/battery\_state}, planned in the specification) was found in the code: battery
+telemetry is, at this stage, not exposed by the onboard software.
