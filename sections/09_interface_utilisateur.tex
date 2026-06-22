@@ -30,57 +30,62 @@ margin compared to a classic "dead-man" device (Chapter~\ref{ch:limitations}).
 \texttt{teleop\_twist\_joy\_node} and \texttt{motor\_bridge\_node} (max angular velocity
 raised to 3.0\,rad/s, minimum duty cycle 22\,\%).
 
-\section{\gls{ekf} Fusion --- Configuration Detail}
+\section{\gls{ekf} Fusion --- Configuration}
 \label{sec:ihm_ekf_detail}
 
 \texttt{ekf\_odom\_imu.yaml} (\texttt{ekf\_fusion.launch.py}) configures
 \texttt{ekf\_filter\_node} at \textbf{30\,Hz}, \texttt{two\_d\_mode}: from odometry
-(\topic{/odom}), only the \emph{velocities} $(v_x,v_y,\dot\theta)$ are fused; from the
-\gls{imu} (\topic{/imu/data\_raw}), only $\dot\theta$ is kept. This configuration avoids
-integrating the MPU6050's raw acceleration or an orientation that the node does not
-provide. The \texttt{world\_frame} remains \texttt{odom}, leaving the
-\topic{map}$\to$\topic{odom} correction to \texttt{slam\_toolbox}/\gls{amcl} --- a clean
-separation between local (\gls{ekf}) and global (\gls{slam}/\gls{amcl}) estimation.
+(\topic{/odom}), only velocities $(v_x,v_y,\dot\theta)$ are fused; from the
+\gls{imu} (\topic{/imu/data\_raw}), only $\dot\theta$ is kept, avoiding raw acceleration
+integration. The \texttt{world\_frame} remains \texttt{odom}, delegating the
+\topic{map}$\to$\topic{odom} correction to \texttt{slam\_toolbox}/\gls{amcl}.
 
 \section{Telemetry Web Dashboard}
 \label{sec:ihm_dashboard}
 
-The \texttt{imu\_web\_dashboard} node (\texttt{esibot\_dashboard}) exposes a standalone
-HTTP server (\texttt{http.server}, no external dependency), serving a single-page
-HTML/JS page, noticeably different from the dashboard envisioned in the specification
-(which called for a \texttt{rosbridge\_suite} WebSocket gateway with a map, video and
-teleoperation buttons) --- the actual implementation focuses on \textbf{telemetry}.
+The \texttt{imu\_web\_dashboard} node (\texttt{esibot\_dashboard}) exposes a standalone HTTP server (\texttt{http.server}) serving a single-page HTML/JS application focused on \textbf{telemetry}: roll/pitch artificial horizon, odometry trajectory (1200\,pts), and \topic{/joy}/\topic{/cmd\_vel} wheel-speed display (equation~\ref{eq:diff_drive}). The dashboard polls \texttt{GET /api/imu} (lock-protected JSON state shared between the \ros{} and HTTP threads). It does \textbf{not} display the \gls{slam} map or the video stream (Chapter~\ref{ch:limitations}).
+
+\section{ESP32-CAM Unified Vision API}
+\label{sec:ihm_camera}
+
+\subsection{Architecture Overview}
+\label{sec:ihm_camera_arch}
+
+A dedicated FastAPI backend (\texttt{esp32-camera-computer-vision-backend}) connects to the
+ESP32-CAM's \gls{mjpeg} stream and exposes four real-time video endpoints over a single
+server instance running on port~5000:
 
 \begin{table}[H]
 	\centering
-	\caption{Widgets of the \texttt{imu\_web\_dashboard}.}
-	\label{tab:dashboard_widgets}
-	\begin{tabularx}{\linewidth}{L{3.2cm} L{8.7cm}}
+	\caption{Endpoints of the ESP32 Unified Vision API.}
+	\label{tab:vision_endpoints}
+	\begin{tabularx}{\linewidth}{L{3.2cm} L{8.6cm}}
 		\toprule
-		\textbf{Widget} & \textbf{Content} \\
+		\textbf{Endpoint} & \textbf{Service} \\
 		\midrule
-		Orientation & roll/pitch (accelerometer integration), \texttt{<canvas>} artificial horizon, zeroing (\texttt{POST /api/zero}) \\
-		Odometry & position/heading/velocities (\topic{/odometry/filtered}), trajectory (1200 pts) \\
-		Controller \& command & \topic{/joy} axes/buttons and \topic{/cmd\_vel} $\to$ wheel speed conversion (equation~\ref{eq:diff_drive}) \\
+		\texttt{/stream/raw} & Raw \gls{mjpeg} feed, no processing \\
+		\texttt{/stream/human} & YOLOv8n-seg human detection \& instance segmentation \\
+		\texttt{/stream/signs} & YOLOv8n road sign detection (stop signs, traffic lights) \\
+		\texttt{/stream/line} & Black-tape line follower (OpenCV classical pipeline) \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-The interface continuously polls \texttt{GET /api/imu} (consolidated JSON state,
-lock-protected for consistency between the \ros{} thread and the HTTP thread). The
-dashboard \textbf{shows neither the \gls{slam} map nor the video stream}, two features
-of Deliverable~5 (Chapter~\ref{ch:limitations}).
+To avoid opening multiple camera connections and reduce latency, a \textbf{dedicated camera reader thread} continuously acquires frames from the ESP32-CAM and shares them with all processing modules via a shared frame buffer. Each endpoint independently reads from this buffer and applies its own processing pipeline before encoding the result as a real-time \gls{mjpeg} response.
 
-\section{ESP32-CAM Video Stream}
-\label{sec:ihm_camera}
+\subsection{Object Recognition}
+\label{sec:ihm_camera_objrec}
 
-The \texttt{esp32\_camera\_bridge} bridge (\texttt{mjpeg\_image\_publisher}) connects as
-an HTTP client to the ESP32-CAM's \gls{mjpeg} stream, extracts each JPEG frame
-(\texttt{0xFFD8}/\texttt{0xFFD9} markers), decodes it with OpenCV and republishes it on
-\topic{/esp32/camera/image\_raw} via \texttt{cv\_bridge}, with automatic reconnection
-(2\,s). This stream is consumable but is not consumed by any dedicated vision node ---
-no \texttt{vision\_node} (line/obstacle detection, planned in the specification) was
-found in the delivered code.
+The human detection and road sign detection endpoints use \textbf{YOLOv8n} (nano variant) loaded once at server startup with a warm-up inference to pre-compile CUDA kernels and eliminate first-request latency. The YOLO model is shared between both endpoints. Human detection (\texttt{/stream/human}, confidence threshold 0.5) applies instance segmentation: detected persons are highlighted with a filled blue mask and a bounding box labelled with the confidence score, as shown in the screenshot (Figure~\ref{fig:human_detection_screen}). Sign detection (\texttt{/stream/signs}, threshold 0.4) targets road-sign classes.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.60\linewidth]{images/VisionStreams.png}
+	\caption{Human detection stream (\texttt{/stream/human}): two persons detected at 0.80 and 0.83 confidence, rendered with blue segmentation masks on the live feed.}
+	\label{fig:human_detection_screen}
+\end{figure}
+
+The line-follower pipeline (\texttt{/stream/line}) uses classical OpenCV: CLAHE contrast enhancement, median + Gaussian blur, morphological erosion/dilation, contour detection, and a 15-slice horizontal analysis to compute the tape's lateral deviation for potential \topic{/cmd\_vel} feedback. Overall, the system provides a \textbf{modular and scalable vision framework} combining deep learning-based object detection and classical image processing for mobile robotics, autonomous navigation, and intelligent monitoring.
 
 \section{Implementation and Operating Procedures}
 \label{ch:exploitation}
@@ -91,51 +96,30 @@ single \texttt{esibot\_full.launch.py}.
 
 \begin{table}[H]
 	\centering
-	\caption{Startup scripts available in \texttt{scripts/}.}
+	\caption{Key startup scripts in \texttt{scripts/}.}
 	\label{tab:startup_scripts}
-	\begin{tabularx}{\linewidth}{L{3.8cm} L{4.4cm} L{4.4cm}}
+	\begin{tabularx}{\linewidth}{L{3.8cm} L{7.9cm}}
 		\toprule
-		\textbf{Script} & \textbf{Role} & \textbf{Notes} \\
+		\textbf{Script} & \textbf{Role} \\
 		\midrule
-		\texttt{start\_esibot.sh} & manual launch of the calibrator & minimal development script \\
-		\texttt{start\_esibot\_all.sh} & production startup (teleop, \gls{imu}, \gls{ekf}, dashboard) & requires valid calibration; radar commented out in the script \\
-		\texttt{start\_esibot\_all\_no\_\allowbreak calib.sh} & variant without verification & starts the ultrasonic radar in addition to teleoperation \\
-		\texttt{start\_esibot\_all\_no\_\allowbreak calib\_no\_imu.sh} & bringup without mandatory calibration & \gls{imu}, \gls{ekf} and dashboard enabled via environment variables \\
-		\texttt{start\_esibot\_keyboard\_\allowbreak autonomous.sh} & keyboard/autonomy command mode & no joystick; expects an external \topic{/cmd\_vel} publisher \\
-		\texttt{read\_pwm\_pins.py}, \texttt{read\_wheel\_\allowbreak encoders.py} & \gls{gpio} diagnostics & direct reading of PWM signals and encoder ticks \\
+		\texttt{start\_esibot.sh} & Manual launch of the calibrator (minimal dev script) \\
+		\texttt{start\_esibot\_all.sh} & Production startup: teleop, \gls{imu}, \gls{ekf}, dashboard (requires valid calibration; radar commented out) \\
+		\texttt{start\_esibot\_all\_no\_\allowbreak calib.sh} & Variant without verification; also starts the ultrasonic radar \\
+		\texttt{read\_pwm\_pins.py} & Direct \gls{gpio} diagnostics (PWM signals and encoder ticks) \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-\begin{notebox}[title={No script starts the Kinect/\gls{slam} pipeline}]
-	The shell scripts are limited to the "low-level control + telemetry" layer
-	(Chapter~\ref{ch:commande_bas_niveau}). The mapping pipeline
-	(\texttt{mapping.launch.py}) and Nav2 (\texttt{navigation2.launch.py}) must be
-	started \emph{separately}, typically from the operator PC (high-level layer,
-	Figure~\ref{fig:global_archi}) --- a direct reflection of the three-layer
-	breakdown (Chapter~\ref{ch:archi_globale}).
+\begin{notebox}[title={Kinect/SLAM pipeline started separately}]
+	The scripts cover only the low-level layer. \texttt{mapping.launch.py} and \texttt{navigation2.launch.py} are started from the operator PC --- reflecting the three-layer architecture (Chapter~\ref{ch:archi_globale}).
 \end{notebox}
 
-Before any startup via \texttt{start\_esibot\_all.sh}, the script verifies the validity
-of a JSON calibration file (\texttt{\textasciitilde/.esibot/pwm\_rpm\_map.json},
-generated by \texttt{motor\_calibrator}, Section~\ref{sec:cbn_calibrator}), with positive
-coefficients required for the 4 \{left,right\}$\times$\{forward,reverse\} combinations
---- a safeguard that blocks startup in case of missing or invalid calibration.
+Before any startup via \texttt{start\_esibot\_all.sh}, the script verifies a valid JSON calibration file (\texttt{\textasciitilde/.esibot/pwm\_rpm\_map.json}, generated by \texttt{motor\_calibrator}, Section~\ref{sec:cbn_calibrator}) with positive coefficients for all 4 motor directions.
 
-\begin{lstlisting}[style=BashStyle, caption={Full sequence --- low-level startup, then mapping and navigation.}, label={lst:slam_nav_sequence}]
-./scripts/start_esibot_all.sh        # teleop + IMU + EKF + dashboard (RPi4)
-
-ros2 launch esibot_slam mapping.launch.py start_rviz:=true        # mapping
+\begin{lstlisting}[style=BashStyle, caption={Full startup sequence.}, label={lst:slam_nav_sequence}]
+./scripts/start_esibot_all.sh      # teleop + IMU + EKF + dashboard (RPi4)
+ros2 launch esibot_slam mapping.launch.py start_rviz:=true
 ros2 run nav2_map_server map_saver_cli -f ~/esibot_ws/maps/test_room
 ros2 launch esibot_navigation2 navigation2.launch.py \
-    map:=$HOME/esibot_ws/maps/test_room.yaml use_rviz:=true      # navigation
+    map:=$HOME/esibot_ws/maps/test_room.yaml use_rviz:=true
 \end{lstlisting}
-
-The workspace (\texttt{\textasciitilde/esibot\_ws}) groups the \texttt{esibot\_*}
-packages, the \texttt{depth\_cleanup} library, the third-party dependencies
-\texttt{kinect\_ros2}, \texttt{esp32\_camera\_bridge} and \texttt{m-explore-ros2}, in
-addition to the standard \ros{} Humble packages (\texttt{slam\_toolbox},
-\texttt{nav2\_bringup}, \texttt{robot\_localization}, \texttt{depthimage\_to\_laserscan},
-\texttt{joy}, \texttt{teleop\_twist\_joy}, \texttt{cv\_bridge}). The
-\texttt{START\_EVERYTHING.md} file in \texttt{working\_build} documents the build
-sequence, the manual startup commands, the topic checks, and map saving.

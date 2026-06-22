@@ -72,51 +72,12 @@ projects a horizontal band of the depth image into a synthetic laser scan
 \section{Depth Preprocessing with \texttt{depth\_cleanup}}
 \label{sec:slam_depth_cleanup}
 
-The \texttt{working\_build} branch adds the \texttt{depth\_cleanup} package, a
-C++/OpenCV library independent of \ros{} and \texttt{libfreenect}. Its role is to clean
-up holes in the Kinect depth data while preserving a metric \texttt{CV\_16UC1} image in
-millimeters, usable thereafter by a \ros{} node that would publish a
-\texttt{sensor\_msgs/Image} synchronized with \texttt{CameraInfo}. The geometry mode
-adopted is \texttt{applyKinectSmoothingPipeline()}:
-\begin{itemize}
-	\item null pixels are treated as invalid;
-	\item a $3\times3$ neighborhood fills small holes using a mode quantized into 10\,mm
-	      bins;
-	\item remaining holes are filled with \texttt{cv::INPAINT\_TELEA} at 20\,\%
-	      resolution to limit CPU cost;
-	\item the original valid pixels remain unchanged, which is checked by the package's
-	      unit tests.
-\end{itemize}
-
-The \texttt{SLAM\_INTEGRATION.md} document explicitly sets the integration boundary:
-\texttt{slam\_toolbox} does not consume the depth image directly, but the
-\texttt{LaserScan} produced by \texttt{depthimage\_to\_laserscan}. At the current state
-of the \texttt{mapping.launch.py} launch, the remapping still points to
-\topic{/kinect/depth/image\_raw}. The remaining step therefore consists of inserting a
-\ros{} adapter that publishes the cleaned \texttt{16UC1} image and its
-\texttt{CameraInfo}, then remapping \texttt{depthimage\_to\_laserscan} to this cleaned
-topic.
+The \texttt{working\_build} branch adds the \texttt{depth\_cleanup} package (C++/OpenCV, independent of \ros{}/\texttt{libfreenect}) to fill holes in the Kinect depth data while preserving a metric \texttt{CV\_16UC1} image in millimeters. The \texttt{applyKinectSmoothingPipeline()} function: treats null pixels as invalid; fills small holes with a $3\times3$ mode filter (10\,mm bins); fills remaining holes with \texttt{cv::INPAINT\_TELEA} at 20\,\% resolution to limit CPU cost; and leaves original valid pixels unchanged. The remaining integration step is inserting a \ros{} adapter to publish the cleaned image and remap \texttt{depthimage\_to\_laserscan} to it, rather than \topic{/kinect/depth/image\_raw}.
 
 \section{Why the Kinect Replaces the Ultrasonic Radar}
 \label{sec:slam_ultrasonic_vs_kinect}
 
-The ultrasonic path remains present in \texttt{ultrasonic\_scan\_node}, but it is not
-suited to fast autonomous driving. The \texttt{working\_build} configuration sweeps only
-from $-30^\circ$ to $+30^\circ$ in $5^\circ$ steps, takes five measurements per angle,
-waits 0.35\,s for servo settling, and publishes roughly 0.07 scans per second. Such a
-sensor gives a sequential scalar distance per direction, strongly dependent on the
-servo's instantaneous orientation: a chair, a table leg, a low obstacle or a sloped
-surface can be missed or mapped to the wrong location between two costmap updates.
-
-The article by Kamarudin et al. on the analysis of the Kinect for 2D SLAM, referenced in
-Appendix~\ref{app:sources}, notes that a Kinect sensor used for 2D SLAM remains limited by
-its field of view and range, but that its 3D depth data offers a richer basis for
-detecting objects of varying shapes and sizes. For \esibot{}, this transforms the
-problem: instead of building a costmap from a slow ultrasonic beam, a coherent LaserScan
-slice is extracted from a complete depth scene updated at video rate. The ultrasonic
-radar therefore still has value as a diagnostic tool or a slow local safety check, but the
-Kinect is the consistent sensor feeding \texttt{slam\_toolbox}, Nav2 and autonomous
-exploration.
+The \texttt{working\_build} ultrasonic path sweeps $-30^\circ$ to $+30^\circ$ in $5^\circ$ steps, waits 0.35\,s for servo settling, and publishes $\approx$0.07\,scans/s --- making it unsuitable for real-time mapping and easily confused by chairs, table legs, or sloped surfaces. The Gazebo simulation (Section~\ref{sec:slam_gazebo_sim}) confirmed these limits. The Kinect instead extracts a coherent \texttt{LaserScan} slice from a depth scene updated at video rate, feeding \texttt{slam\_toolbox}, Nav2 and autonomous exploration. The ultrasonic radar retains value only as a diagnostic tool or local safety check.
 
 \section{\texttt{slam\_toolbox} Configuration}
 \label{sec:slam_toolbox_config}
@@ -160,23 +121,46 @@ The \gls{rviz} configuration \texttt{esibot\_slam\_map\allowbreak.rviz} is the p
 main visualization tool (map, \topic{/scan} scan, \gls{urdf} model, full \gls{tf} tree),
 rather than an integrated mapping view in the web dashboard (Chapter~\ref{ch:ihm}).
 
+\section{Gazebo Ultrasonic SLAM Simulation}
+\label{sec:slam_gazebo_sim}
+
+Before deploying on the physical robot, the ultrasonic-based occupancy grid algorithm was validated in a Gazebo simulation environment (\texttt{ultrasonic\_slam\_simulation} branch). The node \texttt{occupancy\_grid\_hcsr04} subscribes to \topic{/scan} (a simulated \texttt{LaserScan} from the virtual HC-SR04 array), runs a Bayesian log-odds update ($\text{log-odds}_{\text{free}}=-0.7$, $\text{log-odds}_{\text{occ}}=+1.5$, clipped to $[\,-3.0,\,3.0\,]$) on a $200\times200$ grid at 5\,cm/cell, and publishes both an \texttt{OccupancyGrid} on \topic{/map} and a \texttt{PointCloud2} on \topic{/map\_points} (workaround for an Nvidia display issue with RViz2).
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}[b]{0.31\linewidth}
+		\centering
+		\includegraphics[width=\linewidth,height=4cm,keepaspectratio]{images/GazeboUltraSoundSimulationStartup.png}
+		\caption*{\small (a) Startup.}
+	\end{minipage}\hfill
+	\begin{minipage}[b]{0.31\linewidth}
+		\centering
+		\includegraphics[width=\linewidth,height=4cm,keepaspectratio]{images/GazeboUltraSoundSimulationHalfProgress.png}
+		\caption*{\small (b) Mid-exploration.}
+	\end{minipage}\hfill
+	\begin{minipage}[b]{0.31\linewidth}
+		\centering
+		\includegraphics[width=\linewidth,height=4cm,keepaspectratio]{images/GazeboUltraSoundSimulationFinal.png}
+		\caption*{\small (c) Final map.}
+	\end{minipage}
+	\caption{Gazebo simulation of ultrasonic occupancy-grid mapping (\texttt{ultrasonic\_slam\_simulation} branch). The robot autonomously explores a hexagonal arena using a AVANCER / EVITER / TOURNER state machine.}
+	\label{fig:gazebo_ultrasound}
+\end{figure}
+
+The autonomous navigation relies on a three-state machine: \texttt{AVANCER} (forward at 0.07\,m/s), \texttt{EVITER} (obstacle avoidance at $<$0.85\,m), and \texttt{TOURNER} (rotation at $\pm$0.45\,rad/s). The Bayesian update runs at 20\,Hz (50\,ms timer), while the grid is published at 1\,Hz with Nav2-compatible QoS (\texttt{TRANSIENT\_LOCAL} + \texttt{RELIABLE}). As confirmed in Section~\ref{sec:slam_ultrasonic_vs_kinect}, this simulation demonstrated the limits of the slow ultrasonic sweep for real-time mapping, motivating the switch to the Kinect.
+
 \section{Autonomous Navigation with Nav2}
 \label{ch:navigation}
 
 Autonomous navigation relies on the standard \textbf{Nav2} stack
 (\texttt{navigation2.launch.py}, package \texttt{esibot\_navigation2}), loading the
-static map, the \texttt{esibot.yaml} file, and orchestrating localization, costmaps,
-planner, controller, behaviors, velocity smoother and collision monitor.
-
-Localization uses \gls{amcl} (particle filter, 500--2000 particles,
-\texttt{likelihood\_field} model, \texttt{DifferentialMotionModel}, initial pose not set
-automatically). The local ($3\times3$\,m window) and global costmaps
+static map, \texttt{esibot.yaml}, and orchestrating \gls{amcl} localization (500--2000 particles,
+\texttt{likelihood\_field} + \texttt{DifferentialMotionModel}), costmaps, planner, controller,
+velocity smoother and collision monitor. Local and global costmaps
 \label{sec:nav_costmaps}
-share a
-resolution of \textbf{0.05\,m/cell}, a robot radius of \textbf{0.2\,m}, and an inflation
-radius of \textbf{0.35\,m} (factor 5.0). The global planner
-\texttt{NavfnPlanner} (Dijkstra, 0.5\,m tolerance) feeds the \gls{dwb} local controller,
-whose bounds are summarized in Table~\ref{tab:dwb_params}.
+share 0.05\,m/cell resolution, 0.2\,m robot radius, 0.35\,m inflation radius.
+\texttt{NavfnPlanner} (Dijkstra, 0.5\,m tolerance) feeds the \gls{dwb} local controller
+(Table~\ref{tab:dwb_params}).
 
 \begin{table}[H]
 	\centering
@@ -195,27 +179,9 @@ whose bounds are summarized in Table~\ref{tab:dwb_params}.
 	\end{tabularx}
 \end{table}
 
-The \gls{dwb} scoring criteria (\texttt{PathAlign} 32, \texttt{GoalDist} 24,
-\texttt{BaseObstacle} 0.02, \texttt{RotateToGoal} 32) clearly favor adherence to the
-global path over speed, consistent with a small-footprint indoor robot. The behavior
-server exposes \texttt{Spin}, \texttt{BackUp}, \texttt{DriveOnHeading},
-\texttt{Wait}, \texttt{AssistedTeleop}; a \texttt{collision\_monitor} watches a stop
-disk (radius 0.1\,m), a slowdown polygon and an approach polygon (2\,s horizon) before
-final transmission to \topic{/cmd\_vel}.
-
-As noted in Section~\ref{sec:slam_toolbox_config}, the default loaded map is a generic
-sample map; the Nav2 configuration itself is complete and consistent with the Kinect
-pipeline, but its experimental validation on a real map still needed to be carried out
-(Chapter~\ref{ch:resultats}).
+The \gls{dwb} scoring criteria (\texttt{PathAlign} 32, \texttt{GoalDist} 24, \texttt{BaseObstacle} 0.02, \texttt{RotateToGoal} 32) favor path adherence. A \texttt{collision\_monitor} watches a stop disk (0.1\,m), a slowdown polygon, and an approach polygon (2\,s horizon). The default loaded map is a generic Nav2 sample; field validation with a real Kinect map is pending (Chapter~\ref{ch:resultats}).
 
 \section{Autonomous Exploration}
 \label{sec:slam_exploration}
 
-The \texttt{working\_build} branch also adds \texttt{src/m-explore-ros2} as a Git
-dependency. This module corresponds to the frontier-based exploration layer: it sits on
-top of the \topic{/map} map, the \gls{tf} tree and Nav2, selects frontiers between known
-and unknown areas, then sends successive goals to the navigator. No \texttt{esibot\_*}
-launch file orchestrates it yet alongside the bringup, the Kinect and Nav2; its
-operational integration must therefore verify three conditions before demonstration:
-the submodule initialized in the workspace, stable \topic{/map}/\topic{/tf} topics, and
-Nav2 active with either a map or online \gls{slam}.
+The \texttt{working\_build} branch includes \texttt{src/m-explore-ros2} for frontier-based exploration (selects frontiers on \topic{/map}, sends goals to Nav2). Integration with the full bringup is pending: the submodule must be initialized, \topic{/map}/\topic{/tf} must be stable, and Nav2 must be active.

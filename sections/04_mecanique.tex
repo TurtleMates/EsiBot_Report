@@ -1,16 +1,34 @@
 \chapter{Mechanical and Electronic Design}
 \label{ch:mecanique}
 
+\section{Physical Overview}
+\label{sec:meca_overview}
+
+\begin{figure}[H]
+	\centering
+	\begin{minipage}[b]{0.44\linewidth}
+		\centering
+		\includegraphics[width=\linewidth,height=5.5cm,keepaspectratio]{images/EsiBotFrontView.png}
+		\caption{Front view of the assembled \esibot{}.}
+		\label{fig:esibot_front}
+	\end{minipage}\hfill
+	\begin{minipage}[b]{0.44\linewidth}
+		\centering
+		\includegraphics[width=\linewidth,height=5.5cm,keepaspectratio]{images/EsiBotTopView.png}
+		\caption{Top view showing the compute and sensor layout.}
+		\label{fig:esibot_top}
+	\end{minipage}
+\end{figure}
+
+The front view (Figure~\ref{fig:esibot_front}) shows the Kinect depth sensor mounted at the front, the dual-wheel drive assembly, and the caster wheel for static balance. The top view (Figure~\ref{fig:esibot_top}) reveals the Raspberry~Pi~4 board, the L298N H-bridge, the MPU6050 \gls{imu}, and the ESP32-CAM, all stacked on the 3D-printed chassis.
+
 \section{Differential Architecture}
 \label{sec:meca_diff}
 
 \esibot{} adopts a \emph{differential drive} architecture: two independent driven wheels
-plus a caster wheel ensuring static stability, with steering resulting solely from the
-speed difference between the two wheels. The chassis \gls{cad}/STL files form a separate
-deliverable (Deliverable~1) not included in the analyzed code; this chapter therefore
-relies on the \gls{urdf} model (\texttt{esibot\_description}), the source of truth used
-by \ros{} for transforms and costmaps, supplemented by the electronic constants found in
-the control code.
+plus a caster wheel ensuring static stability. The chassis \gls{cad}/STL files form a
+separate deliverable (Deliverable~1); this chapter relies on the \gls{urdf} model
+(\texttt{esibot\_description}) and the electronic constants found in the control code.
 
 \section{Geometric Model}
 \label{sec:meca_urdf}
